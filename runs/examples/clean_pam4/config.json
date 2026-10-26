@@ -1,0 +1,21 @@
+{
+  "levels": [
+    0.0,
+    1.0,
+    2.0,
+    3.0
+  ],
+  "symbol_period": 1e-10,
+  "samples_per_ui": 128,
+  "n_symbols": 10000,
+  "seed": 123,
+  "symbol_mode": "random",
+  "sequence": null,
+  "probabilities": null,
+  "transition_10_90_ui": 0.2,
+  "channel_bandwidth_hz": null,
+  "noise_std": 0.0,
+  "display_phase_ui": 0.0,
+  "amplitude_unit": "arbitrary units",
+  "tail_tolerance": 1e-10
+}

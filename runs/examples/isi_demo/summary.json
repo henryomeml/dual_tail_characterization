@@ -1,0 +1,33 @@
+{
+  "description": "Illustrative bandwidth-limited simulation, not a calibrated optical-link simulation. 2 GHz first-order channel; Gaussian noise sigma 0.035 arbitrary units.",
+  "samples": 1280001,
+  "retained_symbols": 10000,
+  "seed": 123,
+  "amplitude_unit": "arbitrary units",
+  "time_unit": "seconds",
+  "valid_interval_seconds": [
+    0.0,
+    1e-06
+  ],
+  "model_settings": {
+    "dt_seconds": 7.8125e-13,
+    "kernel_half_samples": 139,
+    "kernel_support_ui": 1.0859375,
+    "logistic_tau_ui": 0.04551196133134187,
+    "guard_symbols_per_side": 22,
+    "guard_policy": "independent random guards",
+    "alignment": "centered logistic kernel; ideal jumps on integer UI samples; causal channel delay retained",
+    "channel_tau_seconds": 7.957747154594768e-11,
+    "channel_settling_samples": 2346,
+    "rng": "SeedSequence(seed).spawn(2): symbols, noise",
+    "model": "offline logistic smoothing + optional causal first-order low-pass"
+  },
+  "eye_trace_count": 9999,
+  "plot_mode": "density",
+  "versions": {
+    "python": "3.13.2",
+    "numpy": "2.2.2",
+    "scipy": "1.15.1",
+    "matplotlib": "3.10.0"
+  }
+}
