@@ -74,7 +74,7 @@ def test_explicit_no_wrap_and_context():
     assert np.all(w.guard_symbol_indices[:g] == 0)
     assert np.all(w.guard_symbol_indices[-g:] == 3)
     eye = extract_eye(w, 2)
-    np.testing.assert_array_equal(eye.context_symbol_indices[-1], [2, 3, -1])
+    np.testing.assert_array_equal(eye.context_symbol_indices[-1], [1, 2, 3])
     assert w.final[0] < 1e-8 and w.final[-1] > 3 - 1e-8
 
 
@@ -105,7 +105,7 @@ def test_invalid(kwargs, message):
 def test_export_and_raw_counts(tmp_path):
     w = generate_waveform(Config(n_symbols=20))
     save_run(w, tmp_path, csv_interval_ui=(0, 3))
-    for file in ("config.json", "summary.json", "waveform.npz", "waveform.png", "eye_1ui.png", "eye_2ui.png", "waveform_interval.csv"):
+    for file in ("config.json", "summary.json", "waveform.npz", "waveform.png", "eye_1ui.png", "eye_2ui.png", "eye_1ui_traces.png", "eye_2ui_traces.png", "waveform_interval.csv"):
         assert (tmp_path / file).stat().st_size > 0
     with np.load(tmp_path / "waveform.npz", allow_pickle=False) as data:
         np.testing.assert_array_equal(data["final"], w.final)

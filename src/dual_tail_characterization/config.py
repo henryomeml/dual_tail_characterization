@@ -17,7 +17,7 @@ class Config:
     transition_10_90_ui: float = .20
     channel_bandwidth_hz: float | None = None
     noise_std: float = 0.
-    display_phase_ui: float = 0.
+    display_phase_ui: float = 0.  # start = boundary - .5 UI + phase; positive shifts boundaries left
     amplitude_unit: str = "arbitrary units"
     tail_tolerance: float = 1e-10
 

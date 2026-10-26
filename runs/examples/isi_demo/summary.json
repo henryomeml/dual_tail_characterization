@@ -22,8 +22,17 @@
     "rng": "SeedSequence(seed).spawn(2): symbols, noise",
     "model": "offline logistic smoothing + optional causal first-order low-pass"
   },
-  "eye_trace_count": 9999,
+  "eye_trace_count": 9998,
   "plot_mode": "density",
+  "eye_alignment": "start_k = b_k - 0.5*T + display_phase_ui*T; nominal boundary at 0.5-phase UI",
+  "rendering": {
+    "amplitude_bins": 64,
+    "time_bins_per_ui": null,
+    "reference_lines": true,
+    "smoothing": "none",
+    "overlay_limit": 500,
+    "density_line_underlay": "first 500 source traces; display only; not histogram counts"
+  },
   "versions": {
     "python": "3.13.2",
     "numpy": "2.2.2",
