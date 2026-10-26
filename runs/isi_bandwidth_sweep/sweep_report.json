@@ -1,0 +1,54 @@
+{
+  "original_config": {
+    "levels": [
+      0.0,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "symbol_period": 1e-10,
+    "samples_per_ui": 128,
+    "n_symbols": 10000,
+    "seed": 123,
+    "symbol_mode": "random",
+    "sequence": null,
+    "probabilities": null,
+    "transition_10_90_ui": 0.2,
+    "channel_bandwidth_hz": 2000000000.0,
+    "noise_std": 0.035,
+    "display_phase_ui": 0.0,
+    "amplitude_unit": "arbitrary units",
+    "tail_tolerance": 1e-10
+  },
+  "bandwidths_ghz": [
+    2.0,
+    2.5,
+    3.0,
+    4.0,
+    6.0
+  ],
+  "noise_std_fixed": 0.035,
+  "seed_fixed": 123,
+  "retained_sequence_verified": true,
+  "noise_samples_verified": true,
+  "replay_guard_policy": "Constant endpoint extension; eight UIs excluded at each end in comparison.",
+  "comparison": {
+    "clock_start_first": 8,
+    "clock_start_last": 9991,
+    "density_traces": 9984,
+    "overlay_traces": 500,
+    "amplitude_limits": [
+      -0.3,
+      3.3
+    ],
+    "amplitude_bins": 64,
+    "time_bins": 257,
+    "color_normalization": {
+      "kind": "LogNorm",
+      "vmin": 1,
+      "vmax": 1074.0
+    }
+  },
+  "selected_bandwidth_ghz": 3.0,
+  "visual_selection": "Three small openings at 3 GHz; 2.5 GHz not clearly open; 4 and 6 GHz more open than desired."
+}

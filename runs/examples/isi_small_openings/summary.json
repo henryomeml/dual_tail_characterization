@@ -1,0 +1,68 @@
+{
+  "description": "Illustrative bandwidth-limited PAM4 simulation, not a calibrated optical-link simulation. Visual small-opening selection. Original retained random symbol sequence replayed explicitly; seed and additive noise unchanged. Constant endpoint guards are used for explicit replay.",
+  "samples": 1280001,
+  "retained_symbols": 10000,
+  "seed": 123,
+  "amplitude_unit": "arbitrary units",
+  "time_unit": "seconds",
+  "valid_interval_seconds": [
+    0.0,
+    1e-06
+  ],
+  "model_settings": {
+    "dt_seconds": 7.8125e-13,
+    "kernel_half_samples": 139,
+    "kernel_support_ui": 1.0859375,
+    "logistic_tau_ui": 0.04551196133134187,
+    "guard_symbols_per_side": 16,
+    "guard_policy": "constant endpoint extension; no repetition or wraparound",
+    "alignment": "centered logistic kernel; ideal jumps on integer UI samples; causal channel delay retained",
+    "channel_tau_seconds": 5.305164769729845e-11,
+    "channel_settling_samples": 1564,
+    "rng": "SeedSequence(seed).spawn(2): symbols, noise",
+    "model": "offline logistic smoothing + optional causal first-order low-pass"
+  },
+  "eye_trace_count": 9998,
+  "plot_mode": "density",
+  "eye_alignment": "start_k = b_k - 0.5*T + display_phase_ui*T; nominal boundary at 0.5-phase UI",
+  "rendering": {
+    "amplitude_bins": 64,
+    "time_bins_per_ui": null,
+    "reference_lines": true,
+    "smoothing": "none",
+    "overlay_limit": 500,
+    "density_line_underlay": "first 500 source traces; display only; not histogram counts"
+  },
+  "versions": {
+    "python": "3.13.2",
+    "numpy": "2.2.2",
+    "scipy": "1.15.1",
+    "matplotlib": "3.10.0"
+  },
+  "demonstration_selection": {
+    "original_channel_bandwidth_hz": 2000000000.0,
+    "selected_channel_bandwidth_hz": 3000000000.0,
+    "noise_std_original": 0.035,
+    "noise_std_selected": 0.035,
+    "retained_sequence_sha256": "3983ce5b4817a5c3affacfb1d962508e6ea91807fcfd98bd7a84715220771f87",
+    "comparison": {
+      "clock_start_first": 8,
+      "clock_start_last": 9991,
+      "density_traces": 9984,
+      "overlay_traces": 500,
+      "amplitude_limits": [
+        -0.3,
+        3.3
+      ],
+      "amplitude_bins": 64,
+      "time_bins": 257,
+      "color_normalization": {
+        "kind": "LogNorm",
+        "vmin": 1,
+        "vmax": 541.0
+      }
+    },
+    "guard_note": "Explicit replay holds endpoints; comparison excludes eight UIs at each end.",
+    "criterion": "Visual demonstration only; no BER, EH/EW or compliance claim."
+  }
+}

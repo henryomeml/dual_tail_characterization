@@ -53,3 +53,30 @@ Three examples use seed 123 and 10,000 retained symbols, 128 samples/UI, 100 ps/
 
 Tests check random-stream independence, level preservation, mapping/timing, transition duration and monotonicity, exact source segmentation and paired views, fractional interpolation, guard boundaries, channel memory, invalid configuration, export and raw-count conservation. No GMM, eye measurements, BER/SER, masks or optical physics are included.
 
+## ISI demonstration with three small openings
+
+`runs/examples/isi_small_openings` is an additional demonstration selected from a fixed-sequence bandwidth sweep at 2, 2.5, 3, 4 and 6 GHz. The original `isi_demo`, clean and unequal-level cases are preserved. The selected bandwidth is **3 GHz** (channel time constant **53.05 ps**), compared with the original 2 GHz (79.58 ps). Additive Gaussian noise stays at **sigma 0.035 arbitrary units**. Reducing deterministic channel memory opens the three eyes; noise was not reduced. Shaping remains 0.20 UI (20 ps), levels 0/1/2/3, symbol period 100 ps, 128 samples/UI (1.28 TSa/s), seed 123, display offset zero. Actual openings appear later than 1 UI because causal channel delay is retained.
+
+The original retained random symbol sequence is replayed in explicit mode to keep all 10,000 symbols identical across bandwidths: changing bandwidth in random mode otherwise changes the guard length and retained RNG slice. The generator itself is unchanged. Explicit replay uses constant endpoint guards, so the comparison excludes eight UIs at each end. The selected full waveform export retains its documented endpoint extension. Script assertions verify identical retained symbols and identical additive noise samples (within floating-point subtraction tolerance).
+
+From the project directory, regenerate the selected case and comparison with:
+
+```powershell
+$env:PYTHONPATH = 'src'
+python scripts/tune_isi_demo.py --bandwidth-ghz 3 --output runs/examples/isi_small_openings
+```
+
+Or regenerate just the standard selected outputs from their self-contained configuration:
+
+```powershell
+python -m dual_tail_characterization.cli --config runs/examples/isi_small_openings/config.json --output runs/isi_small_openings_replay
+```
+
+To rerun the sweep:
+
+```powershell
+python scripts/tune_isi_demo.py --sweep --output runs/isi_bandwidth_sweep
+```
+
+The selected directory contains all standard waveform/eye exports plus `original_vs_selected.png` and two `original_vs_selected_*_counts.npz` archives. Comparison panels share axes, bin edges, 9,984 source windows, 500 overlay traces and one LogNorm color scale; the comparison density has no smoothing or line underlay. Counts are integer numerical histograms, separate from display normalization. `summary.json` records comparison settings and a retained-sequence hash. `runs/isi_bandwidth_sweep` contains the sweep image, raw histogram archives and selection report. This is visual illustrative selection, without a BER target, EH/EW measurement or compliance claim. Coarse histogram bins remain visible.
+
