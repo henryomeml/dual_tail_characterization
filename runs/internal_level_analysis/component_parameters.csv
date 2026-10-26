@@ -1,0 +1,16 @@
+dataset_id,level_id,amplitude_unit,sampling_phase_ui,sampling_window_ui,parameter_origin,channel_id,wavelength_nm,component_id,weight,mu,sigma,nominal_amplitude,offset
+prescribed_split_0,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,0.5,0.0,0.1,0.0,-0.0
+prescribed_split_0,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,1,0.5,0.0,0.1,0.0,0.0
+prescribed_split_0,1,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,1.0,0.1,1.0,0.0
+prescribed_split_0,2,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,2.0,0.1,2.0,0.0
+prescribed_split_0,3,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,3.0,0.2,3.0,0.0
+prescribed_split_1,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,0.5,-0.15,0.1,0.0,-0.15
+prescribed_split_1,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,1,0.5,0.15,0.1,0.0,0.15
+prescribed_split_1,1,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,1.0,0.1,1.0,0.0
+prescribed_split_1,2,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,2.0,0.1,2.0,0.0
+prescribed_split_1,3,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,3.0,0.2,3.0,0.0
+prescribed_split_2,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,0.5,-0.3,0.1,0.0,-0.3
+prescribed_split_2,0,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,1,0.5,0.3,0.1,0.0,0.3
+prescribed_split_2,1,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,1.0,0.1,1.0,0.0
+prescribed_split_2,2,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,2.0,0.1,2.0,0.0
+prescribed_split_2,3,arbitrary units,0.5,"[0.5, 0.5]",prescribed_simulation,,,0,1.0,3.0,0.2,3.0,0.0

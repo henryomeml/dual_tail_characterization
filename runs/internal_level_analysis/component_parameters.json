@@ -1,0 +1,287 @@
+[
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 0.5,
+    "mu": 0.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": -0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 1,
+    "weight": 0.5,
+    "mu": 0.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 1.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 1.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 2.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 2.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 3.0,
+    "sigma": 0.2,
+    "nominal_amplitude": 3.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 0.5,
+    "mu": -0.15,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": -0.15
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 1,
+    "weight": 0.5,
+    "mu": 0.15,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": 0.15
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 1.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 1.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 2.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 2.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 3.0,
+    "sigma": 0.2,
+    "nominal_amplitude": 3.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 0.5,
+    "mu": -0.3,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": -0.3
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 1,
+    "weight": 0.5,
+    "mu": 0.3,
+    "sigma": 0.1,
+    "nominal_amplitude": 0.0,
+    "offset": 0.3
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 1.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 1.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 2.0,
+    "sigma": 0.1,
+    "nominal_amplitude": 2.0,
+    "offset": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "component_id": 0,
+    "weight": 1.0,
+    "mu": 3.0,
+    "sigma": 0.2,
+    "nominal_amplitude": 3.0,
+    "offset": 0.0
+  }
+]

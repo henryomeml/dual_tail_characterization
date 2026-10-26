@@ -1,0 +1,555 @@
+{
+  "output_group": "internal_level_analysis",
+  "sigma": 0.1,
+  "splits": [
+    0.0,
+    0.15,
+    0.3
+  ],
+  "seed": 123,
+  "samples_per_level_per_scenario": 50000,
+  "sampling_phase_convention": "UI after nominal symbol boundary",
+  "population_kind": "prescribed mixture benchmark; not a continuous waveform realization",
+  "reference_kind": "configured_nominal; not waveform-estimated",
+  "label_rule": "independent categorical draws with prescribed probabilities; labels saved in NPZ",
+  "rng": "SeedSequence(seed).spawn(2): labels, Gaussian component deviations",
+  "fitted_status": "not_available: no GMM fitter exists; no fitting performed",
+  "weight_sum_tolerance": 1e-12,
+  "direction_tolerance": 1e-12,
+  "mean_preservation_required": true,
+  "mean_preservation_tolerance": 1e-12,
+  "versions": {
+    "python": "3.13.2",
+    "numpy": "2.2.2"
+  },
+  "configurations": [
+    {
+      "context": {
+        "dataset_id": "prescribed_split_0",
+        "level_id": 0,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          0.5,
+          0.5
+        ],
+        "means": [
+          0.0,
+          0.0
+        ],
+        "sigmas": [
+          0.1,
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 0.0,
+        "offsets": [
+          -0.0,
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 0.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_0",
+        "level_id": 1,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          1.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 1.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 1.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_0",
+        "level_id": 2,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          2.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 2.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 2.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_0",
+        "level_id": 3,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          3.0
+        ],
+        "sigmas": [
+          0.2
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 3.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 3.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_1",
+        "level_id": 0,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          0.5,
+          0.5
+        ],
+        "means": [
+          -0.15,
+          0.15
+        ],
+        "sigmas": [
+          0.1,
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 0.0,
+        "offsets": [
+          -0.15,
+          0.15
+        ]
+      },
+      "reference": {
+        "mu_ref": 0.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_1",
+        "level_id": 1,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          1.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 1.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 1.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_1",
+        "level_id": 2,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          2.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 2.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 2.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_1",
+        "level_id": 3,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          3.0
+        ],
+        "sigmas": [
+          0.2
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 3.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 3.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_2",
+        "level_id": 0,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          0.5,
+          0.5
+        ],
+        "means": [
+          -0.3,
+          0.3
+        ],
+        "sigmas": [
+          0.1,
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 0.0,
+        "offsets": [
+          -0.3,
+          0.3
+        ]
+      },
+      "reference": {
+        "mu_ref": 0.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_2",
+        "level_id": 1,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          1.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 1.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 1.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_2",
+        "level_id": 2,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          2.0
+        ],
+        "sigmas": [
+          0.1
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 2.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 2.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    },
+    {
+      "context": {
+        "dataset_id": "prescribed_split_2",
+        "level_id": 3,
+        "amplitude_unit": "arbitrary units",
+        "sampling_phase_ui": 0.5,
+        "sampling_window_ui": [
+          0.5,
+          0.5
+        ],
+        "parameter_origin": "prescribed_simulation",
+        "channel_id": null,
+        "wavelength_nm": null
+      },
+      "components": {
+        "weights": [
+          1.0
+        ],
+        "means": [
+          3.0
+        ],
+        "sigmas": [
+          0.2
+        ],
+        "weight_sum_tolerance": 1e-12,
+        "nominal_amplitude": 3.0,
+        "offsets": [
+          0.0
+        ]
+      },
+      "reference": {
+        "mu_ref": 3.0,
+        "sigma_ref": null,
+        "reference_kind": "configured_nominal",
+        "validity": true,
+        "reason": null,
+        "selection_rule": null,
+        "sampling_phase_ui": null,
+        "sampling_window_ui": null,
+        "sample_count": null,
+        "estimation_method": null
+      }
+    }
+  ]
+}

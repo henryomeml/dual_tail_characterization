@@ -1,5 +1,7 @@
 # Continuous PAM waveform milestone
 
+Whole-level mixture diagnostics are documented in [Internal level analysis](docs/level_analysis.md). Run `python -m dual_tail_characterization.level_benchmarks --output runs/internal_level_analysis` (with `src` on PYTHONPATH) for prescribed and sampled benchmark tables, separate from continuous waveform outputs.
+
 Python 3.13 on Windows 11. Generate a single continuous PAM-n waveform, then extract clock-referenced, endpoint-inclusive eye windows from it. No notebook is needed. The repository was empty at implementation time.
 
 ```powershell

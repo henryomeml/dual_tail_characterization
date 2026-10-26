@@ -1,0 +1,254 @@
+[
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": -0.0006214528082544057,
+    "sample_var": 0.010148674681194824,
+    "sample_std": 0.10074063073653462,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 0.9997098017566356,
+    "sample_var": 0.010024715094707043,
+    "sample_std": 0.10012349921325683,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 1.999804585721624,
+    "sample_var": 0.009969153430699157,
+    "sample_std": 0.09984564803084386,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_0",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 2.999098695089402,
+    "sample_var": 0.03999417551153198,
+    "sample_std": 0.19998543824871845,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.0
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": -0.001341591913051999,
+    "sample_var": 0.0323636492481742,
+    "sample_std": 0.1798989973517757,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.15
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 0.9998462816618335,
+    "sample_var": 0.010028687902809322,
+    "sample_std": 0.10014333678687425,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.15
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 1.999963516313961,
+    "sample_var": 0.010037878258381261,
+    "sample_std": 0.10018921228546146,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.15
+  },
+  {
+    "dataset_id": "prescribed_split_1",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 2.999752058461716,
+    "sample_var": 0.039985943814525624,
+    "sample_std": 0.19996485644864107,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.15
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 0,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 0.0012367872329479867,
+    "sample_var": 0.10011952515588599,
+    "sample_std": 0.31641669544429224,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.3
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 1,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 0.999965351818528,
+    "sample_var": 0.010056768878975584,
+    "sample_std": 0.10028344269606815,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.3
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 2,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 1.9996190742850146,
+    "sample_var": 0.00994441919110698,
+    "sample_std": 0.09972170872536722,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.3
+  },
+  {
+    "dataset_id": "prescribed_split_2",
+    "level_id": 3,
+    "amplitude_unit": "arbitrary units",
+    "sampling_phase_ui": 0.5,
+    "sampling_window_ui": [
+      0.5,
+      0.5
+    ],
+    "parameter_origin": "prescribed_simulation",
+    "channel_id": null,
+    "wavelength_nm": null,
+    "record_type": "empirical_sample_statistics",
+    "population": "direct prescribed-distribution draws; no channel or transition filtering",
+    "sample_count": 50000,
+    "sample_mean": 2.999012978919648,
+    "sample_var": 0.04031208126217697,
+    "sample_std": 0.20077868727077824,
+    "variance_estimator": "sample variance, ddof=1",
+    "split_d": 0.3
+  }
+]
