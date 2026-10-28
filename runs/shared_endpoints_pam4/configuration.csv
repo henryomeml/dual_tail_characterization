@@ -1,0 +1,24 @@
+parameter,value,status
+levels[0],0.0,configured
+levels[1],1.0,configured
+levels[2],2.0,configured
+levels[3],3.0,configured
+symbol_period,1e-10,configured
+samples_per_ui,128,configured
+n_symbols,32000,configured
+seed,123,configured
+symbol_mode,random,configured
+sequence,,not_set
+probabilities,,not_set
+transition_10_90_ui,0.2,configured
+channel_bandwidth_hz,,not_set
+noise_std,0.0,configured
+display_phase_ui,0.0,configured
+amplitude_unit,arbitrary units,configured
+tail_tolerance,1e-10,configured
+waveform_mode,shared_endpoints,configured
+endpoint_sigmas[0],0.2,configured
+endpoint_sigmas[1],0.1,configured
+endpoint_sigmas[2],0.1,configured
+endpoint_sigmas[3],0.2,configured
+shared_kappa,,not_set

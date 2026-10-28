@@ -20,12 +20,33 @@ class Config:
     display_phase_ui: float = 0.  # start = boundary - .5 UI + phase; positive shifts boundaries left
     amplitude_unit: str = "arbitrary units"
     tail_tolerance: float = 1e-10
+    waveform_mode: str = "continuous_filter"
+    endpoint_sigmas: tuple[float, ...] | None = None
+    shared_kappa: float | None = None
 
     def __post_init__(self):
         levels = np.asarray(self.levels, dtype=float)
         if levels.ndim != 1 or len(levels) < 2 or not np.all(np.isfinite(levels)) or not np.all(np.diff(levels) > 0):
             raise ValueError("levels must be finite, strictly increasing, and contain at least two values")
         object.__setattr__(self, "levels", tuple(levels.tolist()))
+        if self.waveform_mode not in ("continuous_filter", "shared_endpoints"):
+            raise ValueError("waveform_mode must be continuous_filter or shared_endpoints")
+        if self.endpoint_sigmas is not None:
+            sigmas = np.asarray(self.endpoint_sigmas, dtype=float)
+            if sigmas.shape != levels.shape or not np.all(np.isfinite(sigmas)) or np.any(sigmas < 0):
+                raise ValueError("endpoint_sigmas must contain one finite nonnegative sigma per level")
+            object.__setattr__(self, "endpoint_sigmas", tuple(sigmas.tolist()))
+        if self.shared_kappa is not None and (not math.isfinite(self.shared_kappa) or self.shared_kappa <= 0):
+            raise ValueError("shared_kappa must be finite and positive")
+        if self.waveform_mode == "continuous_filter" and (self.endpoint_sigmas is not None or self.shared_kappa is not None):
+            raise ValueError("endpoint_sigmas and shared_kappa require shared_endpoints mode")
+        if self.waveform_mode == "shared_endpoints":
+            if self.n_symbols < 2:
+                raise ValueError("shared_endpoints requires at least two symbols")
+            if self.channel_bandwidth_hz is not None or self.noise_std != 0:
+                raise ValueError("initial shared_endpoints mode requires channel disabled and additive noise_std=0")
+            if self.shared_kappa is None and not 0 < self.transition_10_90_ui < .8:
+                raise ValueError("normalized logistic transition_10_90_ui must be between 0 and 0.8, or specify shared_kappa")
         for name, minimum in (("samples_per_ui", 2), ("n_symbols", 1), ("seed", 0)):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, numbers.Integral) or value < minimum:

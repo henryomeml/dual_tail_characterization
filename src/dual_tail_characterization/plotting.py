@@ -28,6 +28,10 @@ def plot_waveform(w, path, start_ui=0, count_ui=16):
                     bbox=dict(facecolor="white", edgecolor="none", alpha=.8, pad=1))
     ax.step(w.time[mask] / c.symbol_period, w.ideal[mask], where="post", label="Ideal", color="gray", alpha=.7)
     ax.plot(w.time[mask] / c.symbol_period, w.final[mask], label="Final", lw=1)
+    if w.symbol_endpoint_values is not None:
+        selected = (w.symbol_centers >= start_ui*c.symbol_period) & (w.symbol_centers <= end*c.symbol_period)
+        ax.scatter(w.symbol_centers[selected]/c.symbol_period, w.symbol_endpoint_values[selected],
+                   s=14, color="tab:orange", zorder=3, label="Shared symbol-center endpoints")
     ax.set(xlabel="Time (UI)", ylabel=f"Amplitude ({c.amplitude_unit})", xlim=(start_ui, end), ylim=amplitude_limits(w), title="Continuous PAM waveform · transmitted indices above")
     ax.legend(loc="lower right")
     fig.savefig(path, dpi=160)

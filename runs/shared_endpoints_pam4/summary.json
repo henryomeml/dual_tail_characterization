@@ -1,0 +1,55 @@
+{
+  "description": "Shared-symbol-endpoint PAM4; original independent-lane offsets removed deliberately; no channel, timing jitter or additive sample noise.",
+  "samples": 4095873,
+  "retained_symbols": 32000,
+  "seed": 123,
+  "amplitude_unit": "arbitrary units",
+  "time_unit": "seconds",
+  "valid_interval_seconds": [
+    5e-11,
+    3.19995e-06
+  ],
+  "model_settings": {
+    "model": "shared symbol-center endpoints; normalized logistic segments",
+    "waveform_mode": "shared_endpoints",
+    "dt_seconds": 7.8125e-13,
+    "time_origin_ui": 0.5,
+    "effective_kappa": 21.970739414302862,
+    "effective_transition_10_90_ui": 0.19999999999999998,
+    "transition_duration_convention": "10-90 of endpoint-normalized L(u); solved for kappa unless explicitly supplied",
+    "endpoint_sigma_unit": "arbitrary units",
+    "endpoint_sigmas": [
+      0.2,
+      0.1,
+      0.1,
+      0.2
+    ],
+    "alignment": "endpoints at symbol centers (k+0.5) UI; boundaries at integer UI; no crossing recentering",
+    "valid_interval_kind": "first through last symbol center, inclusive; no artificial endpoint guards",
+    "guard_symbols_per_side": 0,
+    "guard_policy": "none; no repetition or wraparound",
+    "rng": "SeedSequence(seed).spawn(3): symbols, endpoint fluctuations, reserved additive noise",
+    "analytic_reference": "pre-impairment independent endpoint fluctuations; channel and additive noise disabled",
+    "segment_dependence": "adjacent segments share endpoints and are correlated",
+    "continuity": "amplitude continuity only; derivatives need not agree at joins",
+    "validation_status": "pass",
+    "validation_tolerances": "6 standard errors; lane n_eff=n/2 conservatively accounts for adjacent endpoint sharing"
+  },
+  "eye_trace_count": 31998,
+  "plot_mode": "density",
+  "eye_alignment": "start_k = b_k - 0.5*T + display_phase_ui*T; nominal boundary at 0.5-phase UI",
+  "rendering": {
+    "amplitude_bins": 64,
+    "time_bins_per_ui": null,
+    "reference_lines": true,
+    "smoothing": "none",
+    "overlay_limit": 500,
+    "density_line_underlay": "first 500 source traces; display only; not histogram counts"
+  },
+  "versions": {
+    "python": "3.13.2",
+    "numpy": "2.2.2",
+    "scipy": "1.15.1",
+    "matplotlib": "3.10.0"
+  }
+}

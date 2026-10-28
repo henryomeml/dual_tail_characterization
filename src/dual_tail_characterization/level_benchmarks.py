@@ -7,6 +7,7 @@ import platform
 import numpy as np
 from .level_analysis import Components, LevelContext, Reference, analyze_level, component_records
 from .level_analysis_export import export_table
+from .validation_workbook import configuration_table, write_workbook
 
 
 def run_benchmarks(output, *, sigma=.1, splits=(0., .15, .3), sample_count=50_000, seed=123):
@@ -50,11 +51,11 @@ def run_benchmarks(output, *, sigma=.1, splits=(0., .15, .3), sample_count=50_00
                     sample_count=len(selected), sample_mean=float(selected.mean()) if len(selected) else None,
                     sample_var=float(selected.var(ddof=1)) if len(selected) > 1 else None))
             configurations.append(dict(context=asdict(context), components=asdict(components), reference=asdict(reference)))
-    export_table(theoretical, output / "prescribed_level_analysis")
-    export_table(parameters, output / "component_parameters")
-    export_table(empirical, output / "empirical_statistics")
-    export_table(empirical_components, output / "empirical_component_statistics")
-    export_table([], output / "fitted_level_analysis")
+    tables = [export_table(theoretical, output / "prescribed_level_analysis"),
+              export_table(parameters, output / "component_parameters"),
+              export_table(empirical, output / "empirical_statistics"),
+              export_table(empirical_components, output / "empirical_component_statistics"),
+              export_table([], output / "fitted_level_analysis")]
     np.savez_compressed(output / "sample_populations.npz", **populations)
     manifest = dict(output_group="internal_level_analysis", sigma=sigma, splits=list(splits), seed=seed,
                     samples_per_level_per_scenario=sample_count, sampling_phase_convention="UI after nominal symbol boundary",
@@ -68,6 +69,9 @@ def run_benchmarks(output, *, sigma=.1, splits=(0., .15, .3), sample_count=50_00
                     versions=dict(python=platform.python_version(), numpy=np.__version__),
                     configurations=configurations)
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, allow_nan=False), encoding="utf-8")
+    configuration = configuration_table(manifest)
+    configuration.write_csv(output)
+    write_workbook([configuration, *tables], output)
     return theoretical, empirical
 
 

@@ -1,9 +1,9 @@
 """Strict JSON and CSV tables for internal diagnostics; missing values stay null."""
-import csv
 import json
 import math
 import numpy as np
 from pathlib import Path
+from .validation_workbook import RunTable
 
 
 def _safe(value):
@@ -26,10 +26,6 @@ def export_table(records, output_stem):
     output_stem.parent.mkdir(parents=True, exist_ok=True)
     rows = _safe(list(records))
     output_stem.with_suffix(".json").write_text(json.dumps(rows, indent=2, allow_nan=False), encoding="utf-8")
-    fields = list(dict.fromkeys(key for row in rows for key in row))
-    with output_stem.with_suffix(".csv").open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=fields)
-        if fields:
-            writer.writeheader()
-        for row in rows:
-            writer.writerow({k: json.dumps(v, allow_nan=False) if isinstance(v, (list, dict)) else v for k, v in row.items()})
+    table = RunTable.from_records(output_stem.with_suffix(".csv").name, output_stem.stem, rows, kind="internal level diagnostics")
+    table.write_csv(output_stem.parent)
+    return table

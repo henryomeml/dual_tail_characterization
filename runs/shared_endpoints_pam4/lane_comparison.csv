@@ -1,0 +1,17 @@
+start,end,original_mean_start (arbitrary units),original_mean_end (arbitrary units),original_independent_lane_sigma (arbitrary units),effective_mean_start (arbitrary units),effective_mean_end (arbitrary units),effective_sigma_start (arbitrary units),effective_sigma_end (arbitrary units),sigma_comparison_status
+0,0,0,0,0.2,0.0,0.0,0.2,0.2,different parameter definitions; original sigma is not an endpoint pair
+0,1,0.03,1,0.2,0.0,1.0,0.2,0.1,different parameter definitions; original sigma is not an endpoint pair
+0,2,0.06,2,0.2,0.0,2.0,0.2,0.1,different parameter definitions; original sigma is not an endpoint pair
+0,3,0.09,2.91,0.2,0.0,3.0,0.2,0.2,different parameter definitions; original sigma is not an endpoint pair
+1,0,1,0.03,0.1,1.0,0.0,0.1,0.2,different parameter definitions; original sigma is not an endpoint pair
+1,1,1,1,0.1,1.0,1.0,0.1,0.1,different parameter definitions; original sigma is not an endpoint pair
+1,2,1,2,0.1,1.0,2.0,0.1,0.1,different parameter definitions; original sigma is not an endpoint pair
+1,3,1,2.94,0.1,1.0,3.0,0.1,0.2,different parameter definitions; original sigma is not an endpoint pair
+2,0,2,0.06,0.1,2.0,0.0,0.1,0.2,different parameter definitions; original sigma is not an endpoint pair
+2,1,2,1,0.1,2.0,1.0,0.1,0.1,different parameter definitions; original sigma is not an endpoint pair
+2,2,2,2.97,0.1,2.0,2.0,0.1,0.1,different parameter definitions; original sigma is not an endpoint pair
+2,3,2,2.97,0.1,2.0,3.0,0.1,0.2,different parameter definitions; original sigma is not an endpoint pair
+3,0,2.91,0.09,0.2,3.0,0.0,0.2,0.2,different parameter definitions; original sigma is not an endpoint pair
+3,1,2.94,1,0.2,3.0,1.0,0.2,0.1,different parameter definitions; original sigma is not an endpoint pair
+3,2,2.97,2,0.2,3.0,2.0,0.2,0.1,different parameter definitions; original sigma is not an endpoint pair
+3,3,3,3,0.2,3.0,3.0,0.2,0.2,different parameter definitions; original sigma is not an endpoint pair

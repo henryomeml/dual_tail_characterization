@@ -179,6 +179,15 @@ def test_prescribed_and_empirical_benchmarks(tmp_path):
     assert json.loads((tmp_path / "fitted_level_analysis.json").read_text()) == []
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest["fitted_status"].startswith("not_available")
+    mapping = json.loads((tmp_path / "workbook_mapping.json").read_text())
+    assert {m["source_csv"] for m in mapping} == {p.name for p in tmp_path.glob("*.csv")}
+    from openpyxl import load_workbook
+    book = load_workbook(tmp_path / "validation_results.xlsx")
+    assert "README" in book.sheetnames
+    sheet = book["prescribed_level_analysis"]
+    level_column = next(c.column for c in sheet[1] if c.value == "level_id")
+    assert sheet.cell(2, level_column).value == "0"
+    book.close()
 
 
 def test_invalid_analysis_controls():

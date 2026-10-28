@@ -19,9 +19,15 @@ class Waveform:
     valid_interval: tuple[float, float]
     metadata: dict
     guard_symbol_indices: np.ndarray
+    symbol_centers: np.ndarray | None = None
+    symbol_endpoint_values: np.ndarray | None = None
+    endpoint_standard_normals: np.ndarray | None = None
 
 
 def generate_waveform(config: Config) -> Waveform:
+    if config.waveform_mode == "shared_endpoints":
+        from .shared_endpoints import generate_shared_endpoints
+        return generate_shared_endpoints(config)
     c = config
     s = c.samples_per_ui
     dt = c.symbol_period / s
@@ -60,4 +66,5 @@ def generate_waveform(config: Config) -> Waveform:
                     rng="SeedSequence(seed).spawn(2): symbols, noise", model="offline logistic smoothing + optional causal first-order low-pass")
     return Waveform(c, time, full_ideal[start:stop].copy(), noiseless, final, indices,
                     levels[indices], np.arange(c.n_symbols + 1) * c.symbol_period,
-                    (0., c.n_symbols * c.symbol_period), metadata, all_symbols)
+                    (0., c.n_symbols * c.symbol_period), metadata, all_symbols,
+                    symbol_centers=(np.arange(c.n_symbols) + .5) * c.symbol_period)

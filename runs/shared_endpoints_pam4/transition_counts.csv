@@ -1,0 +1,17 @@
+transition_id,start_level_id,end_level_id,segment_count,status
+0->0,0,0,2031,populated
+0->1,0,1,2033,populated
+0->2,0,2,2031,populated
+0->3,0,3,1993,populated
+1->0,1,0,2048,populated
+1->1,1,1,1979,populated
+1->2,1,2,2027,populated
+1->3,1,3,1908,populated
+2->0,2,0,2024,populated
+2->1,2,1,2037,populated
+2->2,2,2,2027,populated
+2->3,2,3,2044,populated
+3->0,3,0,1986,populated
+3->1,3,1,1913,populated
+3->2,3,2,2047,populated
+3->3,3,3,1871,populated

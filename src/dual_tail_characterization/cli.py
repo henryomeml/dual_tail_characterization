@@ -10,6 +10,7 @@ from .export import save_run
 def main():
     parser = argparse.ArgumentParser(description="Continuous PAM waveform and paired eye views")
     parser.add_argument("--config", type=Path, help="JSON Config fields")
+    parser.add_argument("--shared-endpoint-demo", action="store_true", help="Generate the customized shared-symbol-endpoint PAM4 validation run and workbook")
     parser.add_argument("--output", type=Path, default=Path("runs/default"))
     parser.add_argument("--examples", action="store_true", help="Generate three documented demonstration cases")
     parser.add_argument("--mode", choices=["density", "overlay"], default="density")
@@ -19,6 +20,15 @@ def main():
     parser.add_argument("--no-reference-lines", action="store_true")
     parser.add_argument("--csv-ui", type=float, nargs=2, metavar=("START", "END"))
     args = parser.parse_args()
+    if args.shared_endpoint_demo:
+        if args.examples or args.config:
+            parser.error("--shared-endpoint-demo cannot be combined with --examples or --config")
+        if (args.phase_ui is not None or args.csv_ui is not None or args.mode != "density" or args.amplitude_bins != 64
+                or args.time_bins_per_ui is not None or args.no_reference_lines):
+            parser.error("--shared-endpoint-demo uses fixed initial benchmark settings; use --config for customized waveform/render settings")
+        from .shared_endpoint_demo import run_demo
+        print(run_demo(args.output if args.output != Path("runs/default") else Path("runs/shared_endpoints_pam4")))
+        return
     rendering = dict(amplitude_bins=args.amplitude_bins, time_bins_per_ui=args.time_bins_per_ui,
                      reference_lines=not args.no_reference_lines)
     if args.examples and args.config:

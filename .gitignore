@@ -1,6 +1,7 @@
 __pycache__/
 .pytest_cache/
 .pytest-tmp/
+.validation_preview/
 *.egg-info/
 .venv/
 build/

@@ -113,3 +113,11 @@ def test_export_and_raw_counts(tmp_path):
     counts, _, _ = eye_histogram(eye, amplitude_limits(w))
     assert counts.dtype == np.int64
     assert counts.sum() == eye.traces.size
+    import json
+    from openpyxl import load_workbook
+    mapping = json.loads((tmp_path / "workbook_mapping.json").read_text())
+    assert {m["source_csv"] for m in mapping} == {p.name for p in tmp_path.glob("*.csv")}
+    book = load_workbook(tmp_path / "validation_results.xlsx")
+    assert "Waveform_Interval" in book.sheetnames
+    assert isinstance(book["Waveform_Interval"]["A2"].value, (int, float))
+    book.close()
