@@ -38,6 +38,12 @@ python -m dual_tail_characterization.shared_endpoint_demo --output runs/shared_e
 
 Install with `python -m pip install -e '.[test]'` in a Python 3.13 environment if needed. No workbook formulas are used to simulate physics. Native Excel interaction is not required for reproduction; file contents are checked with openpyxl.
 
+## Implementation files
+
+New modules: `shared_endpoints.py`, `lane_benchmark.py`, `shared_endpoint_demo.py`, and `validation_workbook.py` under `src/dual_tail_characterization`. The independent-lane source is `benchmarks/customized_pam4_independent_lanes.csv`.
+
+Updated modules: `config.py`, `waveform.py`, `eyes.py`, `plotting.py`, `export.py`, `cli.py`, `level_analysis_export.py`, and `level_benchmarks.py`. Dependency metadata now includes openpyxl. Tests add `test_shared_endpoints.py` and extend waveform and level-analysis export coverage. Documentation is in `docs/shared_endpoints.md` and the README. Existing example output files were not rewritten.
+
 ## Limitations
 
 Amplitude continuity does not imply derivative continuity. Adjacent segments are correlated. Analytic references assume independent endpoint fluctuations before impairments; the initial shared mode rejects channel filtering and additive noise. Histogram binning remains visible. Excel native numeric precision applies; NPZ remains authoritative for full floating-point data. Existing continuous-filter examples are preserved.

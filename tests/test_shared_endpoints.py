@@ -160,7 +160,7 @@ def test_demo_outputs_and_every_csv_is_in_workbook(tmp_path):
     mapping = json.loads((tmp_path / "workbook_mapping.json").read_text())
     assert {m["source_csv"] for m in mapping} == {p.name for p in tmp_path.glob("*.csv")}
     for filename in ("waveform.npz", "waveform.png", "eye_1ui.png", "eye_2ui.png", "eye_1ui_traces.png", "eye_2ui_traces.png",
-                     "endpoint_level_histograms.png", "transition_conditioned_histograms.png", "validation_results.xlsx"):
+                     "endpoint_level_histograms.png", "transition_conditioned_histograms.png", "validation_results.xlsx", "REPORT.md"):
         assert (tmp_path / filename).stat().st_size > 0
     with np.load(tmp_path / "waveform.npz", allow_pickle=False) as archive:
         np.testing.assert_array_equal(archive["symbol_endpoint_values"], archive["final"][::128])
