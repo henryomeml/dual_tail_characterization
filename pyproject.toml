@@ -13,6 +13,7 @@ test = ["pytest>=8"]
 
 [project.scripts]
 pam-waveform = "dual_tail_characterization.cli:main"
+pam-gui = "dual_tail_characterization.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

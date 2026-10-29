@@ -61,6 +61,16 @@ def generate_shared_endpoints(c):
     sigmas = np.zeros(len(c.levels)) if c.endpoint_sigmas is None else np.asarray(c.endpoint_sigmas)
     z = endpoint_rng.standard_normal(c.n_symbols)
     endpoints = nominal + sigmas[symbols] * z
+    return assemble_shared_waveform(c, symbols, endpoints, z)
+
+
+def assemble_shared_waveform(c, symbols, endpoints, z, metadata_extra=None):
+    """Common connector for already realized endpoints; never redraw amplitudes."""
+    from .waveform import Waveform
+    s = c.samples_per_ui
+    kappa = c.shared_kappa if c.shared_kappa is not None else kappa_for_duration(c.transition_10_90_ui)
+    nominal = np.asarray(c.levels)[symbols]
+    sigmas = np.zeros(len(c.levels)) if c.endpoint_sigmas is None else np.asarray(c.endpoint_sigmas)
     weight = logistic_weight(np.arange(s) / s, kappa)
     # Equivalent interpolation form keeps identical endpoints exactly constant.
     segments = (endpoints[:-1, None] + weight * (endpoints[1:] - endpoints[:-1])[:, None]).ravel()
@@ -83,6 +93,7 @@ def generate_shared_endpoints(c):
                     analytic_reference="pre-impairment independent endpoint fluctuations; channel and additive noise disabled",
                     segment_dependence="adjacent segments share endpoints and are correlated",
                     continuity="amplitude continuity only; derivatives need not agree at joins")
+    metadata.update(metadata_extra or {})
     return Waveform(c, time, ideal, final.copy(), final, symbols.copy(), nominal,
                     boundaries, (float(time[0]), float(time[-1])), metadata, np.array([], dtype=int),
                     centers, endpoints, z)

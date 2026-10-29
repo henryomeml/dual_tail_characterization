@@ -10,7 +10,7 @@ from .validation_workbook import RunTable, configuration_table, write_workbook
 
 
 def save_run(w, output, plot_mode="density", description="", csv_interval_ui=None,
-             amplitude_bins=64, time_bins_per_ui=None, reference_lines=True, extra_tables=()):
+             amplitude_bins=64, time_bins_per_ui=None, reference_lines=True, extra_tables=(), numerical_arrays=None):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     one, two = paired_eyes(w)
@@ -22,6 +22,11 @@ def save_run(w, output, plot_mode="density", description="", csv_interval_ui=Non
         value = getattr(w, name)
         if value is not None:
             extra_arrays[name] = value
+    if numerical_arrays:
+        reserved={"time","ideal","noiseless","final","symbol_indices","symbol_amplitudes","symbol_boundaries","valid_interval","guard_symbol_indices","metadata_json","config_json",*extra_arrays}
+        if reserved.intersection(numerical_arrays):
+            raise ValueError("additional numerical array names collide with standard waveform fields")
+        extra_arrays.update(numerical_arrays)
     np.savez_compressed(output / "waveform.npz", time=w.time, ideal=w.ideal,
                         noiseless=w.noiseless, final=w.final, symbol_indices=w.symbol_indices,
                         symbol_amplitudes=w.symbol_amplitudes, symbol_boundaries=w.symbol_boundaries,
