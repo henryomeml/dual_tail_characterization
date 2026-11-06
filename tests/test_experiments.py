@@ -49,7 +49,7 @@ def test_mode_editability_matches_generator_support():
     for mode in ("shared_endpoints","history_endpoints"):
         cap=capabilities(mode)
         assert not cap["lane_edit"] and not cap["channel_edit"] and not cap["additive_edit"]
-        assert not cap["per_lane_timing_edit"]
+        assert cap["per_lane_timing_edit"]
     assert capabilities("history_endpoints")["contexts_edit"]
     assert capabilities("continuous_filter")["channel_edit"]
     rows=lane_preview(small())
@@ -180,3 +180,16 @@ def test_export_stored_selected_run_complete_workbook(mode,tmp_path):
             np.testing.assert_array_equal(archive["experiment_contexts"],r.data.arrays["contexts"])
         if mode=="independent_lanes":
             assert "segments" in archive and "time" not in archive
+
+
+def test_smooth_density_preserves_raw_counts_and_samples(tmp_path):
+    from dataclasses import replace
+    r=record(small("shared_endpoints"),tmp_path)
+    figure=Figure()
+    samples=r.data.waveform.final.copy()
+    a=render_run(figure,r,replace(r.plot_settings,density_edges="bins"))
+    b=render_run(figure,r,replace(r.plot_settings,density_edges="smooth"))
+    for key in a:np.testing.assert_array_equal(a[key],b[key])
+    np.testing.assert_array_equal(samples,r.data.waveform.final)
+    with pytest.raises(ValueError,match="density_edges"):
+        replace(r.plot_settings,density_edges="invalid")

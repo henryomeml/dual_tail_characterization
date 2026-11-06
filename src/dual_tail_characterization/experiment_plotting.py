@@ -1,13 +1,15 @@
 """Figure rendering over stored runs; no generation and no widget dependencies."""
 from dataclasses import dataclass
 import threading
+import weakref
+import copy
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize
 from .eyes import extract_eye
 from .experiment_backend import phase_samples
 
 PLOT_LOCK=threading.RLock()
-VIEWS=("Waveform","1UI pattern","2UI eye","Level histogram","Lane histogram")
+VIEWS=("Waveform","1UI pattern","2UI eye","Level histogram","Lane histogram","Eye Height")
 
 
 @dataclass(frozen=True)
@@ -16,10 +18,14 @@ class PlotSettings:
     style: str="combined"
     color: str="grayscale"
     normalization: str="log"
+    density_edges: str="smooth"  # legacy display setting retained for JSON compatibility
+    eye_rendering: str="Raw Counts"
+    supersampling: int=2
     max_traces: int=300
     time_bins_per_ui: int=64
     amplitude_bins: int=96
     reference_lines: bool=True
+    eh_overlay: bool=False
     selection: str="full"
     level: int=0
     lane_start: int=0
@@ -30,6 +36,12 @@ class PlotSettings:
     def __post_init__(self):
         if self.view not in VIEWS or self.style not in ("density","traces","combined") or self.color not in ("grayscale","color") or self.normalization not in ("linear","log"):
             raise ValueError("invalid plot view, rendering style, colormap or normalization")
+        if self.eye_rendering not in ("Raw Counts","Smooth Eye"):
+            raise ValueError("Eye Rendering must be Raw Counts or Smooth Eye")
+        if isinstance(self.supersampling,bool) or not isinstance(self.supersampling,int) or self.supersampling not in (2,4):
+            raise ValueError("Supersampling must be 2 or 4")
+        if self.density_edges not in ("smooth","bins"):
+            raise ValueError("density_edges must be smooth or bins")
         if self.selection not in ("full","lane","level"):
             raise ValueError("invalid conditioning selection")
         for key in ("max_traces","time_bins_per_ui","amplitude_bins"):
@@ -95,10 +107,18 @@ def render_run(figure,record,settings=None):
     arrays={}
     with PLOT_LOCK:
         figure.clear()
+        # Reset the layout starting point so repeated redraws have identical
+        # final pixel geometry (and can reuse their display coverage cache).
+        figure.subplots_adjust(left=.125,right=.9,bottom=.11,top=.88,wspace=.2,hspace=.2)
+        figure._eye_render_metadata={}
+        smooth_pending=None
         ax=figure.add_subplot(111)
         data=record.data
         w=data.waveform
-        if settings.view=="Waveform":
+        if settings.view=="Eye Height":
+            from .eye_height_plotting import plot_height
+            plot_height(ax,record)
+        elif settings.view=="Waveform":
             if w is None:
                 ax.text(.5,.5,"Unavailable: independent-lane benchmark has no continuous time-domain waveform",ha="center",va="center",wrap=True,transform=ax.transAxes)
                 return arrays
@@ -122,32 +142,74 @@ def render_run(figure,record,settings=None):
                 ax.text(.5,.5,"Unavailable: independent finite lanes are not joined into a 2UI eye",ha="center",va="center",transform=ax.transAxes)
                 return arrays
             relative,traces,labels=eye_data(record,length,settings)
-            traces=traces[_selection(labels,settings)]
+            eligible_rows=np.flatnonzero(_selection(labels,settings))
+            traces=traces[eligible_rows]
+            display_rows=eligible_rows[:settings.max_traces]
             source=w.final if w is not None else data.arrays["segments"]
             low,high=min(float(source.min()),min(c.levels)),max(float(source.max()),max(c.levels))
             pad=.08*(high-low) or .1
             limits=(low-pad,high+pad)
-            counts,x,y=raw_eye_histogram(traces,relative,limits,settings)
+            cache=getattr(figure,"_eye_hist_cache",{})
+            source_id=id(w.final) if w is not None else id(data.arrays["segments"])
+            key=(id(data),source_id,length,settings.display_phase,settings.selection,settings.level,settings.lane_start,settings.lane_end,
+                 settings.amplitude_bins,settings.time_bins_per_ui,limits)
+            entry=cache.get(key)
+            if entry is not None and entry[0]() is data:
+                counts,x,y=entry[1:]
+            else:
+                counts,x,y=raw_eye_histogram(traces,relative,limits,settings)
+                for array in (counts,x,y):array.flags.writeable=False
+                if len(cache)>=2:cache.pop(next(iter(cache)))
+                cache[key]=(weakref.ref(data),counts,x,y)
+            figure._eye_hist_cache=cache
             arrays=dict(counts=counts,time_edges_ui=x,amplitude_edges=y)
-            if settings.style in ("density","combined"):
-                ax.set_facecolor("black")
+            ax.set_facecolor("black")
+            cmap="gray" if settings.color=="grayscale" else "viridis"
+            if settings.eye_rendering=="Raw Counts":
                 scale=LogNorm(vmin=1,vmax=max(2,int(counts.max()))) if settings.normalization=="log" else Normalize(vmin=0,vmax=max(1,int(counts.max())))
-                mesh=ax.pcolormesh(x,y,np.ma.masked_equal(counts.T,0),cmap="gray" if settings.color=="grayscale" else "viridis",norm=scale,rasterized=True)
+                mesh=ax.imshow(np.ma.masked_equal(counts.T,0),origin="lower",extent=(x[0],x[-1],y[0],y[-1]),
+                    aspect="auto",interpolation="nearest",resample=False,cmap=cmap,norm=scale)
                 figure.colorbar(mesh,ax=ax,label="Sample count"+(" (log display)" if settings.normalization=="log" else ""))
-            if settings.style in ("traces","combined"):
-                ax.plot(relative,traces[:settings.max_traces].T,lw=.6,alpha=.12,
-                        color="white" if settings.style=="combined" else "tab:blue")
+                figure._eye_render_metadata=dict(eye_rendering="Raw Counts",eligible_traces=len(traces),
+                    displayed_traces=len(traces),display_phase_ui=settings.display_phase,window_ui=length,
+                    interpolation="nearest",count_source="all eligible numerical samples",measurement_source=False)
+            else:
+                scale=LogNorm(vmin=1e-4,vmax=1) if settings.normalization=="log" else Normalize(vmin=0,vmax=1)
+                mesh=ax.imshow(np.ma.masked_equal(np.zeros((2,2)),0),origin="lower",extent=(0,length,*limits),
+                    aspect="auto",interpolation="nearest",resample=False,cmap=cmap,norm=scale)
+                figure.colorbar(mesh,ax=ax,label="Relative display intensity")
+                smooth_pending=(mesh,length,display_rows,limits)
             if settings.reference_lines:
                 refs=[.5] if length==1 else [.5,1.,1.5]
                 for value in refs:
                     ax.axvline(value-settings.display_phase,color="gray",lw=.6,linestyle="--")
+                if record.snapshot.to_dict().get("lane_overrides"):
+                    from .lane_parameters import effective_parameters
+                    lookup={(r["start"],r["end"]):r for r in effective_parameters(record.snapshot)}
+                    if w is None:
+                        classes=[(labels,0)]
+                    else:
+                        eye=extract_eye(w,length,phase_ui=settings.display_phase)
+                        indices=eye.clock_start_symbols-1
+                        classes=[]
+                        chosen=_selection(labels,settings)
+                        for segment in range(length):
+                            idx=indices[chosen]+segment
+                            idx=idx[(idx>=0)&(idx<len(w.symbol_indices)-1)]
+                            classes.append((np.stack((w.symbol_indices[idx],w.symbol_indices[idx+1]),axis=1),segment))
+                    for pairs,segment in classes:
+                        for a,b in np.unique(pairs,axis=0):
+                            if (int(a),int(b)) in lookup:
+                                r=lookup[int(a),int(b)]
+                                ax.axvline(segment+r["center"]-settings.display_phase,color="tab:orange",lw=.7,alpha=.55,linestyle=":")
                 for value in c.levels:
                     ax.axhline(value,color="gray",lw=.4)
             ax.set(xlabel="Relative time (UI)",ylabel=f"Amplitude ({c.amplitude_unit})",xlim=(0,length),ylim=limits,
                 title=f"{'1UI transition pattern' if length==1 else '2UI eye diagram'} · {len(traces):,} eligible traces\n"
-                      f"Display phase {settings.display_phase:g} UI; first {min(len(traces),settings.max_traces)} lines; counts use all eligible samples")
+                      f"Display phase {settings.display_phase:g} UI; " +
+                      (f"Smooth Eye {settings.supersampling}× · displayed {len(display_rows):,} / eligible {len(traces):,}" if settings.eye_rendering=="Smooth Eye" else "Raw Counts · all eligible numerical samples"))
             if not len(traces):
-                ax.text(.5,.5,"No observations for this conditioning population",ha="center",transform=ax.transAxes,color="white" if settings.style!="traces" else "black")
+                ax.text(.5,.5,"No observations for this conditioning population",ha="center",transform=ax.transAxes,color="white")
         else:
             labels=data.arrays["segment_labels"]
             values=phase_samples(data.arrays["segments"],settings.sample_phase)
@@ -161,5 +223,31 @@ def render_run(figure,record,settings=None):
             population=("conditioned on starting-symbol level; outgoing lanes may be pooled" if settings.view=="Level histogram" else "actual ordered lane labels")
             ax.set(xlabel=f"Amplitude ({c.amplitude_unit})",ylabel="Sample count",
                    title=f"{settings.view} · segment phase u={settings.sample_phase:g} · n={len(chosen):,}\n{population}; pooled spread is not a component sigma")
+        if settings.eh_overlay and settings.view in ("1UI pattern","2UI eye"):
+            from .eye_height_plotting import overlay_height
+            overlay_height(ax,record,settings)
         figure.tight_layout()
+        if smooth_pending is not None:
+            from .smooth_eye import smooth_coverage
+            mesh,length,rows,limits=smooth_pending
+            coverage_cache=getattr(figure,"_eye_coverage_cache",{})
+            from .smooth_eye import MAX_WIDTH,MAX_HEIGHT
+            axis_width=max(1,int(round(ax.bbox.width)));axis_height=max(1,int(round(ax.bbox.height)))
+            pixel_scale=min(1.,MAX_WIDTH/axis_width,MAX_HEIGHT/axis_height)
+            size=(max(1,int(round(axis_width*pixel_scale))),max(1,int(round(axis_height*pixel_scale))))
+            coverage_key=(id(data),source_id,record.snapshot.snapshot_json,length,settings.display_phase,tuple(map(int,rows)),limits,size,pixel_scale,settings.supersampling)
+            cached=coverage_cache.get(coverage_key)
+            if cached is not None and cached[0]() is data:
+                intensity=cached[1];metadata=copy.deepcopy(cached[2])
+                metadata.update(coverage_cached=True,initial_coverage_seconds=metadata["coverage_seconds"],coverage_seconds=0.)
+            else:
+                intensity,metadata=smooth_coverage(record,length,settings,rows,limits,*size,pixel_scale=pixel_scale)
+                intensity.flags.writeable=False
+                if len(coverage_cache)>=2:coverage_cache.pop(next(iter(coverage_cache)))
+                coverage_cache[coverage_key]=(weakref.ref(data),intensity,copy.deepcopy(metadata))
+                metadata["coverage_cached"]=False
+            figure._eye_coverage_cache=coverage_cache
+            mesh.set_data(np.ma.masked_equal(intensity,0))
+            metadata.update(eligible_traces=len(traces),intensity_scale="fraction of displayed traces; linear coverage before downsample; fixed 0..1 mapping")
+            figure._eye_render_metadata=metadata
     return arrays

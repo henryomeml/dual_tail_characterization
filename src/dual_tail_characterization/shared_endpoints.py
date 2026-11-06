@@ -64,7 +64,7 @@ def generate_shared_endpoints(c):
     return assemble_shared_waveform(c, symbols, endpoints, z)
 
 
-def assemble_shared_waveform(c, symbols, endpoints, z, metadata_extra=None):
+def assemble_shared_waveform(c, symbols, endpoints, z, metadata_extra=None, lane_parameters=None):
     """Common connector for already realized endpoints; never redraw amplitudes."""
     from .waveform import Waveform
     s = c.samples_per_ui
@@ -72,6 +72,10 @@ def assemble_shared_waveform(c, symbols, endpoints, z, metadata_extra=None):
     nominal = np.asarray(c.levels)[symbols]
     sigmas = np.zeros(len(c.levels)) if c.endpoint_sigmas is None else np.asarray(c.endpoint_sigmas)
     weight = logistic_weight(np.arange(s) / s, kappa)
+    if lane_parameters:
+        from .lane_connector import connector
+        lookup={(r["start"],r["end"]):r for r in lane_parameters}
+        weight=np.array([connector(np.arange(s)/s,lookup[int(a),int(b)]["kappa"],.5+lookup[int(a),int(b)]["phase_shift"]) for a,b in zip(symbols[:-1],symbols[1:])])
     # Equivalent interpolation form keeps identical endpoints exactly constant.
     segments = (endpoints[:-1, None] + weight * (endpoints[1:] - endpoints[:-1])[:, None]).ravel()
     # Each center occurs exactly once; only the very last endpoint is appended.

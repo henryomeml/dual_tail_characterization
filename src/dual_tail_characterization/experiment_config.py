@@ -46,6 +46,8 @@ class ExperimentConfig:
     @classmethod
     def parse(cls, raw):
         raw = copy.deepcopy(raw)
+        overrides = raw.pop("lane_overrides", [])
+        pattern = raw.pop("pattern", None)
         expected = {"mode", "base", "levels", "lanes", "incoming", "outgoing", "contexts", "noise_model", "preset_name", "output_root"}
         if set(raw) != expected:
             raise ValueError(f"configuration fields missing/unknown: {sorted(set(raw)^expected)}")
@@ -116,6 +118,17 @@ class ExperimentConfig:
                     raise ValueError(f"Context override row {i}: sigma must be nonnegative")
                 contexts.append(dict(zip(("previous", "current", "next"), key), mean=number(row["mean"], f"Context override row {i} mean"), sigma=sigma))
             raw["contexts"] = contexts
+        if pattern is not None:
+            from .test_patterns import normalize_pattern
+            pattern=normalize_pattern(pattern,n)
+            if mode=="independent_lanes" and pattern["name"]!="random":
+                raise ValueError("Independent finite lanes cannot preserve an ordered test pattern or symbol history; select a continuous mode")
+            if pattern["name"]=="explicit" and not pattern["repeat"] and pattern["offset_symbols"]+config.n_symbols>len(pattern["sequence"]):
+                raise ValueError("Finite explicit pattern needs offset + requested symbols <= supplied sequence length")
+            raw["pattern"]=pattern
+        from .lane_parameters import validate_overrides
+        if overrides:
+            raw["lane_overrides"] = validate_overrides(raw, overrides)
         return cls(json.dumps(raw, sort_keys=True, allow_nan=False))
 
     def to_dict(self):
@@ -150,7 +163,7 @@ def capabilities(mode):
                 contexts_edit=mode=="history_endpoints", endpoint_sigma_edit=mode in ("shared_endpoints","history_endpoints"),
                 probability_edit=mode!="independent_lanes", channel_edit=mode=="continuous_filter",
                 additive_edit=mode in ("continuous_filter","independent_lanes"), explicit_edit=mode!="independent_lanes",
-                per_lane_timing_edit=mode=="independent_lanes")
+                per_lane_timing_edit=mode!="continuous_filter")
 
 
 def lane_preview(snapshot):
@@ -163,3 +176,14 @@ def lane_preview(snapshot):
     if snapshot.mode == "continuous_filter":
         return [dict(start=a,end=b,mean_start=c.levels[a],mean_end=c.levels[b],sigma_start="not endpoint noise",sigma_end="not endpoint noise",kappa="smoothing kernel",center=.5,weight="source sequence") for a in range(len(c.levels)) for b in range(len(c.levels))]
     return [dict(r,kappa=kappa,center=.5,weight="source sequence") for r in effective_lanes(c.levels,c.endpoint_sigmas)]
+
+
+def clear_preset(mode="shared_endpoints", n=4):
+    """Low-noise GUI starting point; authoritative benchmark presets stay intact."""
+    raw=preset(mode,n).to_dict()
+    for row in raw["levels"]:row["sigma"]=.02
+    for row in raw["lanes"]:row.update(sigma=.02,kappa=10.)
+    if mode in ("shared_endpoints","history_endpoints"):
+        raw["base"]["shared_kappa"]=10.
+    raw["preset_name"]=f"{MODE_NAMES[mode]} PAM{n} — sigma 0.02, kappa 10"
+    return ExperimentConfig.parse(raw)

@@ -40,16 +40,14 @@ class RunData:
 
 
 def lane_weight(u,kappa,center=.5):
-    u = np.asarray(u)
-    if kappa < 1e-6:
-        return u.copy()
-    first,last = expit(-kappa*center),expit(kappa*(1-center))
-    return np.where(u==0,0.,np.where(u==1,1.,(expit(kappa*(u-center))-first)/(last-first)))
+    from .lane_connector import connector
+    return connector(u,kappa,center)
 
 
 def independent_population(snapshot):
     raw,c = snapshot.to_dict(),snapshot.config
-    lanes = raw["lanes"]
+    from .lane_parameters import effective_parameters
+    lanes = effective_parameters(snapshot) if raw.get("lane_overrides") else raw["lanes"]
     symbol_rng,fluctuation_rng,noise_rng = [np.random.default_rng(s) for s in np.random.SeedSequence(c.seed).spawn(3)]
     selected = symbol_rng.choice(len(lanes),c.n_symbols,p=[r["weight"] for r in lanes])
     u = np.arange(c.samples_per_ui+1)/c.samples_per_ui
@@ -59,7 +57,7 @@ def independent_population(snapshot):
     for k,row in enumerate(lanes):
         mask = selected==k
         weight = lane_weight(u,row["kappa"],row["center"])
-        traces[mask] = row["mean_start"] + weight*(row["mean_end"]-row["mean_start"]) + row["sigma"]*z[mask]
+        traces[mask] = row["mean_start"] + weight*(row["mean_end"]-row["mean_start"]) + ((1-weight)*row.get("sigma_start",row.get("sigma",0)) + weight*row.get("sigma_end",row.get("sigma",0)))*z[mask]
     traces += noise_rng.normal(0,c.noise_std,traces.shape)
     return dict(segments=traces,segment_labels=labels,lane_component_ids=selected,
                 independent_phase_ui=u,independent_fluctuations=z)
@@ -85,6 +83,9 @@ def _component_mixture(keys,means,sigmas):
 
 def validation_tables(snapshot,w,arrays):
     raw,c = snapshot.to_dict(),snapshot.config
+    from .lane_parameters import effective_parameters
+    effective=effective_parameters(snapshot)
+    effective_lookup={(r["start"],r["end"]):r for r in effective}
     mode,unit = snapshot.mode,c.amplitude_unit
     segments,labels = arrays["segments"],arrays["segment_labels"]
     lane_rows,component_rows,level_rows,diagnostics,status_rows = [],[],[],[],[]
@@ -103,14 +104,15 @@ def validation_tables(snapshot,w,arrays):
         for b in range(len(c.levels)):
             mask=(labels[:,0]==a)&(labels[:,1]==b)
             indices=np.flatnonzero(mask)
-            for phase in (0.,.5,1.):
+            for phase in sorted(set((0.,.5,1.,effective_lookup[a,b]["center"]))):
                 values=phase_samples(segments[mask],phase)
                 empirical=_stats(values)
                 mean=variance=sigma=None
                 condition=f"lane {a}->{b}; u={phase:g} within center-to-center segment"
-                reference_status="unavailable: continuous filtering has no prescribed conditional Gaussian mixture"
+                reference_status=("unavailable: continuous filtering has no prescribed conditional Gaussian mixture" if mode=="continuous_filter" else
+                                  "unavailable: unobserved lane; no retained context population or empirical samples")
                 if mode=="independent_lanes":
-                    lane=lane_lookup[a,b]
+                    lane=effective_lookup[a,b]
                     weight=float(np.interp(phase,np.arange(c.samples_per_ui+1)/c.samples_per_ui,
                                            lane_weight(np.arange(c.samples_per_ui+1)/c.samples_per_ui,lane["kappa"],lane["center"])))
                     mean=lane["mean_start"]+weight*(lane["mean_end"]-lane["mean_start"])
@@ -118,10 +120,10 @@ def validation_tables(snapshot,w,arrays):
                     x=phase*c.samples_per_ui
                     fraction=x-np.floor(x)
                     factor=(1-fraction)**2+fraction**2
-                    variance=lane["sigma"]**2*(1 if raw["noise_model"]=="trace_offset" else factor)+c.noise_std**2*factor
+                    variance=((1-weight)*lane["sigma_start"]+weight*lane["sigma_end"])**2*(1 if raw["noise_model"]=="trace_offset" else factor)+c.noise_std**2*factor
                     reference_status=f"independent lane, {raw['noise_model']}; additive noise included; one observation/realization/phase"
                 elif mode in ("shared_endpoints","history_endpoints") and len(indices):
-                    weight=float(np.interp(phase,np.arange(c.samples_per_ui+1)/c.samples_per_ui,logistic_weight(np.arange(c.samples_per_ui+1)/c.samples_per_ui,w.metadata["effective_kappa"])))
+                    weight=float(np.interp(phase,np.arange(c.samples_per_ui+1)/c.samples_per_ui,lane_weight(np.arange(c.samples_per_ui+1)/c.samples_per_ui,effective_lookup[a,b]["kappa"],effective_lookup[a,b]["center"])))
                     endpoint_means=arrays["endpoint_means"]
                     endpoint_sigmas=arrays["endpoint_sigmas"]
                     means=(1-weight)*endpoint_means[indices]+weight*endpoint_means[indices+1]
@@ -149,11 +151,11 @@ def validation_tables(snapshot,w,arrays):
             mask=labels[:,0]==level
             values=segments[mask,0]
             population="independent-lane start samples conditioned on start level; outgoing lanes pooled, not component sigma"
-            present=[r for r in raw["lanes"] if r["start"]==level and np.any(np.all(labels==[level,r["end"]],axis=1))]
+            present=[r for r in effective if r["start"]==level and np.any(np.all(labels==[level,r["end"]],axis=1))]
             if present:
                 weights=np.array([np.sum(np.all(labels==[level,r["end"]],axis=1)) for r in present],dtype=float)
                 weights/=weights.sum()
-                parameters=Components(weights,[r["mean_start"] for r in present],[np.hypot(r["sigma"],c.noise_std) for r in present])
+                parameters=Components(weights,[r["mean_start"] for r in present],[np.hypot(r["sigma_start"],c.noise_std) for r in present])
             else:
                 parameters=None
         else:
@@ -186,7 +188,8 @@ def validation_tables(snapshot,w,arrays):
         effective="controlled history model; context means differ from effective lane statistics" if mode=="history_endpoints" else mode,unit=None,status="available"))
     status_rows.extend([dict(quantity="generation",status="complete",value="no amplitude clipping"),
         dict(quantity="validation population",status="available",value="all eligible observations, independent of displayed trace limit"),
-        dict(quantity="GMM fitting / EH / EW / BER",status="unavailable",value=None),
+        dict(quantity="Fixed-phase EH / 1D GMM",status="supported",value="computed separately from generation in Eye Height analysis / selected-run export"),
+        dict(quantity="EW / BER / SER",status="unavailable",value="outside fixed-phase EH milestone"),
         dict(quantity="internal variance diagnostics",status="available" if diagnostics else "unavailable",value="prescribed mixture parameters, actual occurrence weights" if diagnostics else None)])
     tables=[TableData.records("input_effective.csv","Input_Effective",input_effective,kind="input/effective"),
             TableData.records("lane_validation.csv","Lane_Validation",lane_rows),
@@ -206,17 +209,36 @@ def validation_tables(snapshot,w,arrays):
 def generate_experiment(snapshot, progress=lambda message:None):
     progress(f"Generating {snapshot.mode}")
     c=snapshot.config
+    raw=snapshot.to_dict()
     w=None
+    pattern_result=None
+    if raw.get("pattern") and snapshot.mode!="independent_lanes":
+        from .test_patterns import generate_symbols
+        pattern_result=generate_symbols(raw["pattern"],len(c.levels),c.n_symbols,seed=c.seed,probabilities=[r["probability"] for r in raw["levels"]])
     if snapshot.mode=="independent_lanes":
         arrays=independent_population(snapshot)
     else:
         if snapshot.mode=="history_endpoints":
-            history=generate_history_endpoints(snapshot)
+            history=generate_history_endpoints(snapshot,pattern_result)
             w=history.waveform
         elif snapshot.mode in ("shared_endpoints","continuous_filter"):
-            w=generate_waveform(c)
+            effective_config=c
+            provider=None
+            if pattern_result is not None:
+                from dataclasses import replace
+                effective_config=replace(c,symbol_mode="explicit",sequence=tuple(map(int,pattern_result.symbols)),probabilities=None)
+                if snapshot.mode=="continuous_filter":
+                    def provider(count):
+                        result=generate_symbols(raw["pattern"],len(c.levels),c.n_symbols,seed=c.seed,probabilities=[r["probability"] for r in raw["levels"]],guard_count=count)
+                        return result.before,result.after
+            w=generate_waveform(effective_config,guard_provider=provider)
+            if snapshot.mode=="shared_endpoints" and raw.get("lane_overrides"):
+                from .shared_endpoints import assemble_shared_waveform
+                w=assemble_shared_waveform(effective_config,w.symbol_indices,w.symbol_endpoint_values,w.endpoint_standard_normals,lane_parameters=raw["lane_overrides"])
         else:
             raise ValueError("unsupported generator")
+        if pattern_result is not None:
+            w.metadata["pattern"]=pattern_result.metadata
         eye=extract_eye(w)
         starts=eye.clock_start_symbols-1
         arrays=dict(segments=eye.traces,segment_labels=np.stack((w.symbol_indices[starts],w.symbol_indices[starts+1]),axis=1),
@@ -225,8 +247,14 @@ def generate_experiment(snapshot, progress=lambda message:None):
             arrays.update(contexts=history.contexts,endpoint_means=history.endpoint_means,endpoint_sigmas=history.endpoint_sigmas,context_guards=history.guards)
         elif snapshot.mode=="shared_endpoints":
             arrays.update(endpoint_means=w.symbol_amplitudes.copy(),endpoint_sigmas=np.asarray(c.endpoint_sigmas or [0.]*len(c.levels))[w.symbol_indices])
+    if pattern_result is not None:
+        arrays.update(pattern_symbols=pattern_result.symbols.copy(),pattern_guards_before=pattern_result.before.copy(),pattern_guards_after=pattern_result.after.copy())
     progress("Computing full-population validation tables")
     tables=validation_tables(snapshot,w,arrays)
+    from .lane_parameters import effective_parameters
+    tables=tuple(tables)+(TableData.records("effective_lane_parameters.csv","Effective_Lane_Parameters",effective_parameters(snapshot),kind="configured nominal references; not empirical crossings"),)
+    from .pattern_validation import pattern_tables
+    tables+=pattern_tables(snapshot,w,arrays,pattern_result)
     for array in arrays.values():
         array.flags.writeable=False
     if w is not None:
@@ -235,7 +263,8 @@ def generate_experiment(snapshot, progress=lambda message:None):
                 value.flags.writeable=False
     return RunData(snapshot.mode,w,MappingProxyType(arrays),tables,
         f"{c.n_symbols:,} {'independent realizations' if w is None else 'retained symbols'}; {len(arrays['segments']):,} eligible 1UI observations; seed {c.seed}. "
-        + ("Independent finite lanes: no continuous waveform or 2UI view." if w is None else "Continuous source waveform; shared joins retained."))
+        + ("Independent finite lanes: no continuous waveform or 2UI view." if w is None else "Continuous source waveform; shared joins retained.")
+        + (f" Pattern {pattern_result.metadata['label']}: {pattern_result.metadata['capture_kind']}; preview {pattern_result.metadata['preview_symbols']}; " if pattern_result else ""))
 
 
 def prescribed_context_table(snapshot):

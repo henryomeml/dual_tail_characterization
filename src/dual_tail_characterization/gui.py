@@ -1,7 +1,7 @@
 """Tkinter front end over immutable run snapshots and numerical services."""
 import copy
 import csv
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 from pathlib import Path
 import queue
@@ -10,11 +10,12 @@ from tkinter import ttk, filedialog, messagebox, simpledialog
 from tkinter.scrolledtext import ScrolledText
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from .experiment_config import ExperimentConfig, MODE_NAMES, preset, number, capabilities, lane_preview
+from .experiment_config import ExperimentConfig, MODE_NAMES, preset as benchmark_preset, clear_preset as preset, number, capabilities, lane_preview
 from .experiment_backend import prescribed_context_table
 from .experiment_plotting import PlotSettings, VIEWS, render_run
 from .run_controller import RunController
 from .gui_widgets import ScrollFrame, DataTable, RecordDialog
+from .test_patterns import CATALOG, integer as pattern_integer
 
 GENERAL_FIELDS=(
     ("level_count","PAM level count","4"),("symbol_period_ps","Symbol period (ps)","100"),
@@ -39,10 +40,15 @@ class PamApplication:
         self.last_busy=None
         self.pending_replot=False
         self.debounce=None
+        self.plot_debounce=None
         self.after_id=None
         self.custom_presets={}
         self.fields={key:tk.StringVar(value=default) for key,_,default in GENERAL_FIELDS}
         self.symbol_mode=tk.StringVar(value="random")
+        self.pattern_var=tk.StringVar(value="Random")
+        self.pattern_fields={key:tk.StringVar(value=value) for key,value in dict(offset_symbols="0",initial_state="",low_level="0",high_level="3",low_dwell_ui="8",high_dwell_ui="8",level_order="[0,1,2,3]",dwell_ui="[16,16,16,16]").items()}
+        self.pattern_repeat=tk.BooleanVar(value=False)
+        self.pattern_description=tk.StringVar()
         self.mode_var=tk.StringVar(value=MODE_NAMES["shared_endpoints"])
         self.preset_var=tk.StringVar(value="Option 1 PAM4")
         self.noise_model=tk.StringVar(value="trace_offset")
@@ -50,12 +56,15 @@ class PamApplication:
         self.input_status=tk.StringVar()
         self.summary=tk.StringVar(value="Generate a run to inspect data. Configuration edits never modify completed runs.")
         self.busy_text=tk.StringVar(value="Ready")
-        self.plot_vars={key:(tk.BooleanVar(value=value) if isinstance(value,bool) else tk.StringVar(value=str(value))) for key,value in asdict(PlotSettings()).items()}
+        self.plot_vars={key:(tk.BooleanVar(value=value) if isinstance(value,bool) else tk.StringVar(value=str(value))) for key,value in asdict(PlotSettings(eye_rendering="Smooth Eye")).items()}
         self._build_layout()
         self._menus()
+        for variable in self.plot_vars.values():variable.trace_add("write",self._plot_changed)
         for variable in self.fields.values():
             variable.trace_add("write",self._inputs_changed)
-        self.symbol_mode.trace_add("write",self._inputs_changed)
+        for variable in self.pattern_fields.values():variable.trace_add("write",self._inputs_changed)
+        self.pattern_repeat.trace_add("write",self._inputs_changed)
+        self.symbol_mode.trace_add("write",self._legacy_source_changed)
         self.noise_model.trace_add("write",self._inputs_changed)
         self.load_snapshot(preset())
         self.log("Ready. References app.py/screenshot were not attached; using the requested split-pane layout.")
@@ -81,6 +90,13 @@ class PamApplication:
         view.bind("<<ComboboxSelected>>",lambda event:self.replot())
         self.replot_button=ttk.Button(viewbar,text="Replot stored data",command=self.replot)
         self.replot_button.pack(side="right",padx=4)
+        eyebar=ttk.Frame(plot_frame);eyebar.pack(fill="x",pady=3)
+        ttk.Label(eyebar,text="Eye Rendering").pack(side="left",padx=4)
+        ttk.Combobox(eyebar,textvariable=self.plot_vars["eye_rendering"],values=("Raw Counts","Smooth Eye"),state="readonly",width=14).pack(side="left",padx=4)
+        ttk.Label(eyebar,text="Supersampling").pack(side="left",padx=4)
+        self.eye_ss_box=ttk.Combobox(eyebar,textvariable=self.plot_vars["supersampling"],values=("2","4"),state="readonly",width=4)
+        self.eye_ss_box.pack(side="left",padx=4)
+        ttk.Label(eyebar,text="×").pack(side="left")
         self.figure=Figure(figsize=(7,5),dpi=100)
         self.figure.add_subplot(111).text(.5,.5,"Generate or select a completed run",ha="center",transform=self.figure.axes[0].transAxes)
         self.canvas=FigureCanvasTkAgg(self.figure,master=plot_frame)
@@ -96,7 +112,8 @@ class PamApplication:
         ttk.Label(controls,text="Generation mode").grid(row=0,column=0,sticky="w")
         mode=ttk.Combobox(controls,textvariable=self.mode_var,values=list(MODE_NAMES.values()),state="readonly")
         mode.grid(row=0,column=1,columnspan=3,sticky="ew",padx=4)
-        mode.bind("<<ComboboxSelected>>",lambda event:self.load_snapshot(preset(self.mode_key())))
+        mode.bind("<<ComboboxSelected>>",lambda event:self.load_snapshot(preset(self.mode_key(),len(self.edit_tables["levels"].rows))))
+        ttk.Button(controls,text="Edit Lane Parameters…",command=self.edit_lane_parameters).grid(row=4,column=0,columnspan=4,sticky="ew")
         self.generate_button=ttk.Button(controls,text="Generate",command=self.generate)
         self.export_button=ttk.Button(controls,text="Export selected",command=self.export_selected)
         self.remove_button=ttk.Button(controls,text="Remove run",command=self.remove_selected)
@@ -131,9 +148,12 @@ class PamApplication:
         validation_host=ttk.Frame(self.notebook)
         self.notebook.add(config_host,text="Configuration")
         self.notebook.add(validation_host,text="Validation tables")
+        from .eye_height_gui import EyeHeightPanel
+        self.eh_panel=EyeHeightPanel(self.notebook,self)
+        self.notebook.add(self.eh_panel,text="Eye Height")
         self.config_section=tk.StringVar(value="General")
         config_selector=ttk.Combobox(config_host,textvariable=self.config_section,state="readonly",
-            values=("General","Level Properties","Lane Properties","Incoming proposals","Outgoing proposals","Context overrides","Prescribed contexts","Plot controls"))
+            values=("General","Test Pattern","Level Properties","Lane Properties","Incoming proposals","Outgoing proposals","Context overrides","Prescribed contexts","Plot controls"))
         config_selector.pack(fill="x",padx=4,pady=4)
         config_selector.bind("<<ComboboxSelected>>",lambda event:self._show_config())
         self.config_body=ttk.Frame(config_host)
@@ -142,6 +162,7 @@ class PamApplication:
         self.config_body.columnconfigure(0,weight=1)
         self.pages={}
         self._build_general()
+        self._build_pattern_controls()
         self.edit_tables={}
         definitions=(("Level Properties","levels",True),("Lane Properties","lanes",False),("Incoming proposals","incoming",False),
                      ("Outgoing proposals","outgoing",False),("Context overrides","contexts",True))
@@ -167,7 +188,7 @@ class PamApplication:
         io.columnconfigure(1,weight=1)
         self.validation_section=tk.StringVar(value="Input / effective")
         selector=ttk.Combobox(validation_host,textvariable=self.validation_section,state="readonly",
-            values=("Input / effective","Lane theory / empirical","Level statistics","Component parameters","Internal variance","Observed contexts","Validation status"))
+            values=("Pattern metadata","Pattern ordered symbols","Pattern level counts","Pattern transition matrix","Pattern lane counts","Input / effective","Lane theory / empirical","Level statistics","Component parameters","Internal variance","Observed contexts","Validation status"))
         selector.pack(fill="x",padx=4,pady=4)
         selector.bind("<<ComboboxSelected>>",lambda event:self._show_validation())
         self.validation_table=DataTable(validation_host)
@@ -186,13 +207,13 @@ class PamApplication:
         body=page.body
         ttk.Label(body,text="Preset").grid(row=0,column=0,sticky="w",padx=5)
         self.preset_box=ttk.Combobox(body,textvariable=self.preset_var,state="readonly",
-            values=("Original customized PAM4","Option 1 PAM4","Option 2 PAM4","Continuous PAM4"))
+            values=("NRZ / PAM2 alternating","NRZ / PAM2 shared endpoints","PAM2 editable independent lanes","Option 2 PAM2","Continuous PAM2","Original customized PAM4","Editable PAM4 lanes","Option 1 PAM4","Option 2 PAM4","Continuous PAM4","Option 1 PAM8"))
         self.preset_box.grid(row=0,column=1,sticky="ew",padx=5)
         self.preset_box.bind("<<ComboboxSelected>>",self.choose_preset)
         tools=ttk.Frame(body)
         tools.grid(row=1,column=0,columnspan=2,sticky="ew",padx=5,pady=4)
         ttk.Button(tools,text="Duplicate preset",command=self.duplicate_preset).grid(row=0,column=0,sticky="ew",padx=2,pady=2)
-        ttk.Button(tools,text="Reset to preset",command=lambda:self.load_snapshot(preset(self.mode_key()))).grid(row=0,column=1,sticky="ew",padx=2,pady=2)
+        ttk.Button(tools,text="Reset to preset",command=lambda:self.load_snapshot(preset(self.mode_key(),len(self.edit_tables["levels"].rows)))).grid(row=0,column=1,sticky="ew",padx=2,pady=2)
         ttk.Button(tools,text="Rebuild N levels",command=self.rebuild_levels).grid(row=1,column=0,columnspan=2,sticky="ew",padx=2,pady=2)
         tools.columnconfigure(0,weight=1)
         tools.columnconfigure(1,weight=1)
@@ -203,10 +224,11 @@ class PamApplication:
             entry.grid(row=row,column=1,sticky="ew",padx=5,pady=5)
             self.entries[key]=entry
         row=len(GENERAL_FIELDS)+2
-        ttk.Label(body,text="Symbol selection").grid(row=row,column=0,sticky="w",padx=5,pady=5)
-        self.symbol_mode_box=ttk.Combobox(body,textvariable=self.symbol_mode,values=("random","explicit"),state="readonly")
+        ttk.Button(body,text="Test Pattern settings / import…",command=lambda:(self.config_section.set("Test Pattern"),self._show_config())).grid(row=row,column=0,sticky="w",padx=5,pady=5)
+        self.symbol_mode_box=ttk.Combobox(body,textvariable=self.pattern_var,values=[r["label"] for r in CATALOG.values()],state="readonly")
         self.symbol_mode_box.grid(row=row,column=1,sticky="ew",padx=5)
-        ttk.Label(body,text="Symbol probabilities (edit Level Properties)").grid(row=row+1,column=0,sticky="w",padx=5)
+        self.symbol_mode_box.bind("<<ComboboxSelected>>",self._pattern_changed)
+        ttk.Label(body,text="Random probabilities (edit Level Properties)").grid(row=row+1,column=0,sticky="w",padx=5)
         ttk.Entry(body,textvariable=self.probability_text,state="readonly").grid(row=row+1,column=1,sticky="ew",padx=5)
         ttk.Label(body,text="Independent lane noise correlation").grid(row=row+2,column=0,sticky="w",padx=5,pady=5)
         self.noise_model_box=ttk.Combobox(body,textvariable=self.noise_model,values=("trace_offset","sample_independent"),state="readonly")
@@ -217,18 +239,83 @@ class PamApplication:
         ttk.Label(body,text="Rebuilding level count rebuilds complete lane/proposal tables and resets probabilities uniformly. Completed runs remain unchanged.",wraplength=430).grid(row=row+5,column=0,columnspan=2,sticky="ew",padx=5,pady=8)
         body.columnconfigure(1,weight=1)
 
+    def _build_pattern_controls(self):
+        page=ScrollFrame(self.config_body);page.grid(row=0,column=0,sticky="nsew")
+        self.pages["Test Pattern"]=page;body=page.body
+        ttk.Label(body,text="Pattern changes only symbol order. Level/lane inputs are retained.",wraplength=420).grid(row=0,column=0,columnspan=2,sticky="w",padx=5,pady=5)
+        self.pattern_box=ttk.Combobox(body,textvariable=self.pattern_var,state="readonly",values=[r["label"] for r in CATALOG.values()])
+        self.pattern_box.grid(row=1,column=0,columnspan=2,sticky="ew",padx=5)
+        self.pattern_box.bind("<<ComboboxSelected>>",self._pattern_changed)
+        ttk.Label(body,textvariable=self.pattern_description,wraplength=420,justify="left").grid(row=2,column=0,columnspan=2,sticky="ew",padx=5,pady=6)
+        labels=dict(offset_symbols="Start offset [symbols; not display UI]",initial_state="PRBS initial state (S0 first; blank=reference)",low_level="Custom square low level ID",high_level="Custom square high level ID",low_dwell_ui="Low dwell [integer symbol UI]",high_dwell_ui="High dwell [integer symbol UI]",level_order="Custom linearity level order [JSON]",dwell_ui="Custom linearity dwells [JSON, symbol UI]")
+        ttk.Label(body,text="Requested symbols (same as General)").grid(row=3,column=0,sticky="w",padx=5,pady=4)
+        ttk.Entry(body,textvariable=self.fields["n_symbols"]).grid(row=3,column=1,sticky="ew",padx=5,pady=4)
+        for i,(key,var) in enumerate(self.pattern_fields.items(),4):
+            ttk.Label(body,text=labels[key],wraplength=230).grid(row=i,column=0,sticky="w",padx=5,pady=4)
+            ttk.Entry(body,textvariable=var).grid(row=i,column=1,sticky="ew",padx=5,pady=4)
+        row=4+len(self.pattern_fields)
+        ttk.Checkbutton(body,text="Repeat explicit sequence at its true supplied length",variable=self.pattern_repeat).grid(row=row,column=0,columnspan=2,sticky="w",padx=5)
+        ttk.Label(body,text="Explicit symbol IDs (JSON or comma/space separated)").grid(row=row+1,column=0,columnspan=2,sticky="w",padx=5)
+        ttk.Entry(body,textvariable=self.fields["sequence"]).grid(row=row+2,column=0,columnspan=2,sticky="ew",padx=5)
+        self.pattern_import_button=ttk.Button(body,text="Import explicit symbols…",command=self.import_pattern)
+        self.pattern_import_button.grid(row=row+3,column=0,columnspan=2,sticky="ew",padx=5,pady=5)
+        ttk.Label(body,text="Requested length uses General → Symbols. After generation, see Validation tables → Pattern metadata, ordered symbols, level counts and transition matrix. Offsets never recenter eye traces. SSPRQ remains unavailable pending a verified profile.",wraplength=420).grid(row=row+4,column=0,columnspan=2,sticky="ew",padx=5,pady=5)
+        body.columnconfigure(1,weight=1)
+
+    def _pattern_key(self):
+        for key,entry in CATALOG.items():
+            if self.pattern_var.get()==entry["label"]:return key
+        raise ValueError("Select a supported Test Pattern")
+
+    def _legacy_source_changed(self,*args):
+        if self.loading:return
+        self.pattern_var.set(CATALOG[self.symbol_mode.get()]["label"])
+        self._inputs_changed()
+
+    def _pattern_changed(self,event=None):
+        key=self._pattern_key()
+        if key in ("random","explicit"):
+            self.loading=True;self.symbol_mode.set(key);self.loading=False
+        self._update_pattern_description();self._inputs_changed()
+
+    def _update_pattern_description(self):
+        entry=CATALOG[self._pattern_key()]
+        self.pattern_description.set(f"{entry['description']}\nProfile: {entry['profile']}\nSource: {entry['source']}\nPeriodic profiles repeat as required; requested symbols are configured in General. Only relevant fields below are used.")
+
+    def import_pattern(self):
+        path=filedialog.askopenfilename(parent=self.root,filetypes=[("Symbol sequence","*.json *.csv *.txt"),("All files","*.*")])
+        if not path:return
+        try:
+            text=Path(path).read_text(encoding="utf-8-sig").strip()
+            if text.startswith("["):values=json.loads(text)
+            else:
+                lines=list(csv.reader(text.splitlines()))
+                if lines and "level_id" in lines[0]:
+                    col=lines[0].index("level_id");values=[row[col] for row in lines[1:] if row]
+                else:values=text.replace(","," ").split()
+            values=[number(value,"Imported symbol ID",True) for value in values]
+            if not values:raise ValueError("No symbols found")
+            n=len(self.edit_tables["levels"].rows)
+            if min(values)<0 or max(values)>=n:raise ValueError("Imported symbol ID is outside current alphabet")
+            self.fields["sequence"].set(json.dumps(values));self.fields["n_symbols"].set(str(len(values)))
+            self.pattern_fields["offset_symbols"].set("0");self.pattern_repeat.set(False)
+            self.pattern_var.set(CATALOG["explicit"]["label"]);self._pattern_changed()
+            self.log(f"Imported {len(values)} ordered symbols; amplitude and lane settings retained.")
+        except (ValueError,OSError,TypeError) as exc:messagebox.showerror("Pattern import failed",str(exc),parent=self.root)
+
     def _build_plot_controls(self):
         page=ScrollFrame(self.config_body)
         page.grid(row=0,column=0,sticky="nsew")
         self.pages["Plot controls"]=page
         self.plot_entries={}
-        choices=dict(view=VIEWS,style=("density","traces","combined"),color=("grayscale","color"),normalization=("linear","log"),selection=("full","lane","level"))
-        labels=dict(view="View",style="Rendering",color="Colormap",normalization="Count normalization",max_traces="Maximum displayed traces",
+        choices=dict(eye_rendering=("Raw Counts","Smooth Eye"),supersampling=("2","4"),density_edges=("smooth","bins"),view=VIEWS,style=("density","traces","combined"),color=("grayscale","color"),normalization=("linear","log"),selection=("full","lane","level"))
+        labels=dict(eye_rendering="Eye Rendering",supersampling="Smooth Eye supersampling (2× / 4×)",density_edges="Density edges (display only)",view="View",style="Rendering",color="Colormap",normalization="Intensity scale (linear / log)",max_traces="Maximum Smooth Eye traces",
             time_bins_per_ui="Time bins per UI (<= samples/UI)",amplitude_bins="Amplitude bins",reference_lines="Reference lines",selection="Conditioning population",
             level="Selected starting level",lane_start="Selected lane start",lane_end="Selected lane end",sample_phase="Histogram phase u in segment [0,1]",display_phase="Display offset (UI; positive shifts left)")
-        for row,(key,var) in enumerate(self.plot_vars.items()):
-            ttk.Label(page.body,text=labels[key],wraplength=230).grid(row=row,column=0,sticky="w",padx=5,pady=5)
-            if key=="reference_lines":
+        controls={key:var for key,var in self.plot_vars.items() if key not in ("style","density_edges")}
+        for row,(key,var) in enumerate(controls.items()):
+            ttk.Label(page.body,text=labels.get(key,key.replace('_',' ').title()),wraplength=230).grid(row=row,column=0,sticky="w",padx=5,pady=5)
+            if key in ("reference_lines","eh_overlay"):
                 widget=ttk.Checkbutton(page.body,variable=var)
             elif key in choices:
                 widget=ttk.Combobox(page.body,textvariable=var,values=choices[key],state="readonly")
@@ -236,9 +323,9 @@ class PamApplication:
                 widget=ttk.Entry(page.body,textvariable=var)
             widget.grid(row=row,column=1,sticky="ew",padx=5,pady=5)
             self.plot_entries[key]=widget
-        row=len(self.plot_vars)
+        row=len(controls)
         ttk.Button(page.body,text="Replot selected run (no generation)",command=self.replot).grid(row=row,column=0,columnspan=2,sticky="ew",padx=5,pady=8)
-        ttk.Label(page.body,text="Histograms use one observation per segment at phase u. Level conditioning uses the starting symbol; pooled level spread is not a component sigma. Validation always uses all eligible observations.",wraplength=430).grid(row=row+1,column=0,columnspan=2,sticky="ew",padx=5,pady=8)
+        ttk.Label(page.body,text="Histograms use one observation per segment at phase u. Level conditioning uses the starting symbol; pooled level spread is not a component sigma. Validation always uses all eligible observations. Smooth Eye uses a reproducible display subset; its coverage pixels are never measurements. Raw Counts uses every eligible numerical sample.",wraplength=430).grid(row=row+1,column=0,columnspan=2,sticky="ew",padx=5,pady=8)
         page.body.columnconfigure(1,weight=1)
 
     def _menus(self):
@@ -271,8 +358,8 @@ class PamApplication:
         self.raw=snapshot.to_dict()
         raw,c=self.raw,snapshot.config
         self.mode_var.set(MODE_NAMES[snapshot.mode])
-        names=dict(independent_lanes="Original customized PAM4",shared_endpoints="Option 1 PAM4",history_endpoints="Option 2 PAM4",continuous_filter="Continuous PAM4")
-        self.preset_var.set(names.get(snapshot.mode,raw["preset_name"]))
+        names=dict(independent_lanes="Editable PAM4 lanes",shared_endpoints="Option 1 PAM4",history_endpoints="Option 2 PAM4",continuous_filter="Continuous PAM4")
+        self.preset_var.set("Original customized PAM4" if snapshot==benchmark_preset("independent_lanes",4) else names.get(snapshot.mode,raw["preset_name"]) if len(c.levels)==4 else raw["preset_name"])
         values=dict(level_count=len(c.levels),symbol_period_ps=c.symbol_period*1e12,samples_per_ui=c.samples_per_ui,n_symbols=c.n_symbols,seed=c.seed,
             sequence="" if c.sequence is None else json.dumps(c.sequence),transition_10_90_ui=c.transition_10_90_ui,shared_kappa="" if c.shared_kappa is None else c.shared_kappa,
             channel_bandwidth_ghz="" if c.channel_bandwidth_hz is None else c.channel_bandwidth_hz/1e9,noise_std=c.noise_std,amplitude_unit=c.amplitude_unit,
@@ -280,9 +367,22 @@ class PamApplication:
         for key,value in values.items():
             self.fields[key].set(str(value))
         self.symbol_mode.set(c.symbol_mode)
+        source=raw.get("pattern",dict(name=c.symbol_mode))
+        self.pattern_var.set(CATALOG[source["name"]]["label"])
+        defaults=dict(offset_symbols=0,initial_state="",low_level=0,high_level=len(c.levels)-1,low_dwell_ui=8,high_dwell_ui=8,level_order=list(range(len(c.levels))),dwell_ui=[16]*len(c.levels))
+        for key,var in self.pattern_fields.items():
+            value=source.get(key,defaults[key]);var.set(json.dumps(value) if isinstance(value,list) else str(value))
+        self.pattern_repeat.set(source.get("repeat",False))
+        if source["name"]=="explicit" and "sequence" in source:self.fields["sequence"].set(json.dumps(source["sequence"]))
+        self._update_pattern_description()
         self.noise_model.set(raw["noise_model"])
         for key,table in self.edit_tables.items():
             table.set_rows(copy.deepcopy(raw[key]),columns=("previous","current","next","mean","sigma") if key=="contexts" else None)
+        # Remove stale PAM4 plot selections when loading smaller alphabets.
+        for key in ("level","lane_start","lane_end"):
+            try:value=int(self.plot_vars[key].get())
+            except ValueError:value=0
+            self.plot_vars[key].set(str(max(0,min(len(c.levels)-1,value))))
         self._set_capabilities()
         self.loading=False
         self._validate_inputs()
@@ -298,16 +398,31 @@ class PamApplication:
             ("sequence",cap["explicit_edit"]),("shared_kappa",mode in ("shared_endpoints","history_endpoints")),("transition_10_90_ui",mode!="independent_lanes")):
             self.entries[key].configure(state="normal" if enabled else "disabled")
         self.symbol_mode_box.configure(state="readonly" if cap["explicit_edit"] else "disabled")
+        available=[entry["label"] for entry in CATALOG.values() if not entry["pam4"] or len(self.edit_tables["levels"].rows)==4]
+        if mode=="independent_lanes":available=[CATALOG["random"]["label"]]
+        self.symbol_mode_box.configure(values=available)
+        self.pattern_box.configure(values=available,state="readonly" if cap["explicit_edit"] else "disabled")
+        self.pattern_import_button.configure(state="normal" if cap["explicit_edit"] else "disabled")
         self.noise_model_box.configure(state="readonly" if mode=="independent_lanes" else "disabled")
         self.plot_entries["display_phase"].configure(state="disabled" if mode=="independent_lanes" else "normal")
         for key,enabled in (("lanes",cap["lane_edit"]),("incoming",cap["proposals_edit"]),("outgoing",cap["proposals_edit"]),("contexts",cap["contexts_edit"])):
             for button in self.edit_tables[key].action_buttons:
                 button.state(["!disabled"] if enabled else ["disabled"])
         notes=dict(independent_lanes="Independent finite lanes. σ is lane noise; trace_offset shares one Gaussian offset along a realization, sample_independent draws each sample. Lane κ/center and occurrence weights are editable. No channel, sequence or 2UI waveform.",
-            shared_endpoints="Option 1: lane endpoints are derived read-only from Level Properties. Common symmetric connector only. Channel and additive sample noise are disabled; endpoint amplitude σ is separate from timing jitter.",
-            history_endpoints="Option 2: edit incoming/outgoing proposals and optional context overrides. Shared M=(incoming+outgoing)/2 endpoints are controlled history dependence, not an exact reconstruction of arbitrary independent lanes. Common symmetric connector; no channel or additive sample noise.",
+            shared_endpoints="Option 1: lane endpoints are derived read-only from Level Properties. Per-lane κ and exact midpoint shifts are available in Edit Lane Parameters. Channel and additive sample noise are disabled; endpoint amplitude σ is separate from timing jitter.",
+            history_endpoints="Option 2: edit incoming/outgoing proposals and optional context overrides. Shared M=(incoming+outgoing)/2 endpoints are controlled history dependence, not an exact reconstruction of arbitrary independent lanes. Per-lane κ and exact midpoint shifts; no channel or additive sample noise.",
             continuous_filter="Continuous logistic smoothing and optional causal low-pass channel. Endpoint-sigma/lane-proposal edits are unavailable. Channel ISI, additive sample noise and display phase are separate settings.")
         self.support_note.set(notes[mode])
+
+    def edit_lane_parameters(self):
+        try:
+            snapshot=self.gather_snapshot()
+            if snapshot.mode=="continuous_filter":
+                raise ValueError("Continuous filter does not support per-lane connector settings")
+            from .lane_editor import LaneEditor
+            LaneEditor(self.root,snapshot,self.load_snapshot)
+        except Exception as exc:
+            messagebox.showerror("Lane parameters",str(exc),parent=self.root)
 
     def gather_snapshot(self):
         raw=copy.deepcopy(self.raw)
@@ -332,7 +447,8 @@ class PamApplication:
         for field,key,scale in (("shared_kappa","shared_kappa",1),("channel_bandwidth_ghz","channel_bandwidth_hz",1e9)):
             text=self.fields[field].get().strip()
             base[key]=None if not text else number(text,field)*scale
-        if base["symbol_mode"]=="explicit":
+        pattern_key=self._pattern_key()
+        if pattern_key=="explicit":
             text=self.fields["sequence"].get().strip()
             try:
                 values=json.loads(text) if text.startswith("[") else text.replace(","," ").split()
@@ -343,7 +459,37 @@ class PamApplication:
                 raise ValueError(f"Explicit sequence: provide integer indices; {exc}") from exc
         else:
             base["sequence"]=None
+        if pattern_key not in ("random","explicit"):
+            base["symbol_mode"]="random";base["sequence"]=None
+        source=dict(name=pattern_key,offset_symbols=pattern_integer(self.pattern_fields["offset_symbols"].get(),"Pattern offset [symbols]"))
+        if pattern_key in ("PRBS13Q","PRBS31Q"):
+            source["initial_state"]=self.pattern_fields["initial_state"].get().strip() or None
+        elif pattern_key=="explicit":
+            source.update(sequence=base["sequence"],repeat=self.pattern_repeat.get())
+            # Requested capture length can differ from the full supplied source sequence.
+            base["symbol_mode"]="random";base["sequence"]=None
+        elif pattern_key=="custom_square":
+            for key in ("low_level","high_level","low_dwell_ui","high_dwell_ui"):
+                source[key]=number(self.pattern_fields[key].get(),key,True)
+        elif pattern_key=="custom_linearity":
+            try:
+                for key in ("level_order","dwell_ui"):source[key]=json.loads(self.pattern_fields[key].get())
+            except ValueError as exc:raise ValueError("Custom Linearity requires JSON lists") from exc
+        # Old snapshots keep their exact legacy representation until pattern settings change.
+        legacy=("pattern" not in self.raw and pattern_key in ("random","explicit") and source["offset_symbols"]==0 and not self.pattern_repeat.get() and (pattern_key=="random" or self.raw["base"]["symbol_mode"]=="explicit" and len(source["sequence"])==base["n_symbols"]))
+        if legacy and pattern_key=="explicit":
+            base["symbol_mode"]="explicit";base["sequence"]=source["sequence"]
+            raw.pop("pattern",None)
+        elif legacy:raw.pop("pattern",None)
+        else:raw["pattern"]=source
         raw["noise_model"]=self.noise_model.get()
+        if raw.get("lane_overrides") and raw["mode"] in ("shared_endpoints","history_endpoints"):
+            from .lane_parameters import effective_parameters
+            source=copy.deepcopy(raw);source.pop("lane_overrides")
+            derived={(r["start"],r["end"]):r for r in effective_parameters(ExperimentConfig.parse(source))}
+            for r in raw["lane_overrides"]:
+                for key in ("mean_start","mean_end","sigma_start","sigma_end","weight"):
+                    r[key]=derived[r["start"],r["end"]][key]
         return ExperimentConfig.parse(raw)
 
     def _inputs_changed(self,*args):
@@ -463,8 +609,16 @@ class PamApplication:
             self.load_snapshot(self.custom_presets[name])
             self.preset_var.set(name)
             return
-        mode={"Original customized PAM4":"independent_lanes","Option 1 PAM4":"shared_endpoints","Option 2 PAM4":"history_endpoints","Continuous PAM4":"continuous_filter"}[name]
-        self.load_snapshot(preset(mode))
+        choices={"Original customized PAM4":("independent_lanes",4),"Editable PAM4 lanes":("independent_lanes",4),"Option 1 PAM4":("shared_endpoints",4),
+            "Option 2 PAM4":("history_endpoints",4),"Continuous PAM4":("continuous_filter",4),
+            "NRZ / PAM2 alternating":("shared_endpoints",2),"NRZ / PAM2 shared endpoints":("shared_endpoints",2),"PAM2 editable independent lanes":("independent_lanes",2),
+            "Option 2 PAM2":("history_endpoints",2),"Continuous PAM2":("continuous_filter",2),"Option 1 PAM8":("shared_endpoints",8)}
+        mode,n=choices[name]
+        snapshot=benchmark_preset(mode,n) if name=="Original customized PAM4" else preset(mode,n)
+        if name=="NRZ / PAM2 alternating":
+            raw=snapshot.to_dict();raw["base"].update(symbol_mode="explicit",sequence=[i%2 for i in range(raw["base"]["n_symbols"])])
+            raw["preset_name"]=name;snapshot=ExperimentConfig.parse(raw)
+        self.load_snapshot(snapshot)
 
     def duplicate_preset(self):
         try:
@@ -546,7 +700,7 @@ class PamApplication:
 
     def plot_settings(self):
         raw={key:var.get() for key,var in self.plot_vars.items()}
-        for key in ("max_traces","time_bins_per_ui","amplitude_bins","level","lane_start","lane_end"):
+        for key in ("max_traces","time_bins_per_ui","amplitude_bins","level","lane_start","lane_end","supersampling"):
             raw[key]=number(raw[key],key,True)
         for key in ("sample_phase","display_phase"):
             raw[key]=number(raw[key],key)
@@ -559,6 +713,7 @@ class PamApplication:
             if settings.time_bins_per_ui>snapshot.config.samples_per_ui:
                 raise ValueError("Time bins per UI must not exceed samples per UI")
             record=self.controller.start(snapshot,settings,snapshot.to_dict()["output_root"])
+            self.eh_panel.load(record)
             self.history.insert("","end",iid=record.run_id,text=record.run_id[:8],values=(snapshot.mode,"running",record.created_at[11:19]))
             self.history.selection_set(record.run_id)
             self._update_busy()
@@ -568,6 +723,7 @@ class PamApplication:
 
     def export_selected(self):
         try:
+            if self.eh_panel.dirty:self.eh_panel.apply()
             self.controller.export_selected()
             self._update_busy()
             self.log("Exporting the selected run's stored configuration, data and plot settings.")
@@ -601,6 +757,7 @@ class PamApplication:
             return
         self.controller.selected_id=selection[0]
         record=self.controller.records[selection[0]]
+        self.eh_panel.load(record)
         for key,value in asdict(record.plot_settings).items():
             self.plot_vars[key].set(value)
         self._show_validation()
@@ -613,7 +770,7 @@ class PamApplication:
         if record is None or record.data is None:
             self.validation_table.set_rows([dict(status="unavailable",reason="Select a completed run")])
             return
-        wanted={"Input / effective":["input_effective.csv"],"Lane theory / empirical":["lane_validation.csv"],"Level statistics":["level_statistics.csv"],
+        wanted={"Pattern metadata":["pattern_metadata.csv"],"Pattern ordered symbols":["pattern_symbols.csv"],"Pattern level counts":["pattern_level_counts.csv"],"Pattern transition matrix":["pattern_transition_matrix.csv"],"Pattern lane counts":["pattern_transition_counts.csv"],"Input / effective":["input_effective.csv"],"Lane theory / empirical":["lane_validation.csv"],"Level statistics":["level_statistics.csv"],
             "Component parameters":["lane_components.csv","level_components.csv"],"Internal variance":["internal_variance.csv"],
             "Observed contexts":["observed_contexts.csv"],"Validation status":["validation_status.csv"]}[self.validation_section.get()]
         rows=[]
@@ -626,7 +783,24 @@ class PamApplication:
         self.plot_vars["view"].set(name)
         self.replot()
 
+    def _plot_changed(self,*args):
+        if self.closed:return
+        state="readonly" if self.plot_vars["eye_rendering"].get()=="Smooth Eye" else "disabled"
+        self.eye_ss_box.configure(state=state)
+        self.plot_entries["supersampling"].configure(state=state)
+        if self.loading:return
+        if self.plot_debounce:self.root.after_cancel(self.plot_debounce)
+        self.plot_debounce=self.root.after(220,self._auto_replot)
+
+    def _auto_replot(self):
+        self.plot_debounce=None
+        try:self.plot_settings()
+        except (ValueError,TypeError):return  # Permit intermediate text while typing.
+        self.replot()
+
     def replot(self):
+        if self.plot_debounce:
+            self.root.after_cancel(self.plot_debounce);self.plot_debounce=None
         if self.controller.active_operation=="export":
             self.pending_replot=True
             self.log("Replot queued until export's isolated figure rendering finishes; no samples regenerated.")
@@ -638,6 +812,7 @@ class PamApplication:
             settings=self.plot_settings()
             render_run(self.figure,record,settings)
             self.controller.set_plot(record.run_id,settings)
+            self.eh_panel.refresh()
             self.canvas.draw_idle()
         except ValueError as exc:
             self.log(f"Plot settings invalid: {exc}")
@@ -678,14 +853,19 @@ class PamApplication:
                 run_id,_,kind,payload=event
                 if kind=="log":
                     self.log(str(payload))
-                elif kind in ("generated","failed","exported","export_failed"):
+                elif kind in ("generated","failed","exported","export_failed","eye_height","eye_height_failed"):
                     record=self.controller.records[run_id]
+                    if kind=="eye_height" and self.controller.selected_id==run_id and self.eh_panel.dirty:
+                        record=replace(record,eh_result=None)
+                        self.controller.records[run_id]=record
                     self.history.item(run_id,values=(record.snapshot.mode,record.status,record.created_at[11:19]))
-                    self.log(f"{run_id[:8]} {kind}: {payload if kind!='generated' else record.data.summary}")
+                    detail=f"{len(payload.rows)} per-eye estimate rows; waveform unchanged" if kind=="eye_height" else payload if kind!='generated' else record.data.summary
+                    self.log(f"{run_id[:8]} {kind}: {detail}")
                     if self.controller.selected_id==run_id:
+                        self.eh_panel.refresh()
                         self._show_validation()
                         self._update_summary()
-                        if kind=="generated":
+                        if kind in ("generated","eye_height"):
                             self.replot()
         except queue.Empty:
             pass
@@ -708,6 +888,7 @@ class PamApplication:
             self.root.after_cancel(self.after_id)
         if self.debounce:
             self.root.after_cancel(self.debounce)
+        if self.plot_debounce:self.root.after_cancel(self.plot_debounce)
         self.controller.close()
         self.root.destroy()
 

@@ -1,6 +1,7 @@
 """Selected-run export. Snapshot ownership is independent of current GUI inputs."""
 from dataclasses import asdict, replace
 import json
+import hashlib
 from pathlib import Path
 import numpy as np
 from matplotlib.figure import Figure
@@ -9,6 +10,7 @@ from .experiment_plotting import PLOT_LOCK, render_run
 from .experiment_config import lane_preview
 from .validation_workbook import RunTable, configuration_table, write_workbook
 from .lane_benchmark import original_lane_records
+from .lane_parameters import effective_parameters
 
 
 def export_run(record):
@@ -18,9 +20,25 @@ def export_run(record):
     output.mkdir(parents=True,exist_ok=True)
     raw=record.snapshot.to_dict()
     tables=[t.export_table() for t in record.data.tables]
+    from .eye_height import analyze_run, result_tables
+    # Rendering never calculates EH. Export may calculate the explicitly saved
+    # measurement settings once; independent ensembles need an explicit rule.
+    eh=record.eh_result
+    if eh is not None and record.eh_settings is not None and eh.settings!=record.eh_settings:
+        eh=None  # Never export a cached estimate under different measurement settings.
+    eh_status="unavailable: independent lanes require explicit phase and start/end conditioning"
+    if eh is None and (record.eh_settings is not None or record.data.waveform is not None):
+        eh=analyze_run(record,record.eh_settings)
+        record=replace(record,eh_result=eh,eh_settings=eh.settings)
+    if eh is not None:
+        tables.extend(t.export_table() for t in result_tables(eh))
+        eh_status="available; see individual estimate and validity statuses"
+    from .eye_height_plotting import slice_coordinate
+    display_projection=dict(view=record.plot_settings.view,display_offset_ui=record.plot_settings.display_phase,
+        sampling_slice_displayed_ui=slice_coordinate(record,record.plot_settings),note="display projection only; never used to measure EH")
     tables.extend([
         RunTable.from_records("configured_levels.csv","Configured_Levels",raw["levels"],kind="prescribed"),
-        RunTable.from_records("configured_lanes.csv","Configured_Lanes",lane_preview(record.snapshot),kind="prescribed/derived; see mode"),
+        RunTable.from_records("configured_lanes.csv","Configured_Lanes",effective_parameters(record.snapshot),kind="prescribed/derived; see mode"),
         RunTable.from_records("original_lane_benchmark.csv","Original_Benchmark",original_lane_records(),kind="original independent-lane benchmark; single sigma is not two endpoint sigmas"),
         configuration_table(dict(mode=raw["mode"],noise_model=raw["noise_model"],preset_name=raw["preset_name"],output_root=raw["output_root"])),
         RunTable.from_records("plot_settings.csv","Plot_Settings",[asdict(record.plot_settings)],kind="display only"),
@@ -55,13 +73,37 @@ def export_run(record):
         views=[record.plot_settings.view]
         if record.data.waveform is None:
             views=list(dict.fromkeys([*views,"1UI pattern","Level histogram","Lane histogram"]))
-        for index,view in enumerate(views):
+        renderings={}
+        def save_display(settings,filename):
             figure=Figure(figsize=(9,5),dpi=150)
             FigureCanvasAgg(figure)
-            histogram=render_run(figure,record,replace(record.plot_settings,view=view))
-            filename="selected_view" if index==0 else view.lower().replace(" ","_")
-            figure.savefig(output/f"{filename}.png")
+            histogram=render_run(figure,record,settings)
+            metadata=dict(getattr(figure,"_eye_render_metadata",{}),run_id=record.run_id,
+                snapshot_sha256=hashlib.sha256(record.snapshot.snapshot_json.encode()).hexdigest(),plot_settings=asdict(settings))
+            figure.savefig(output/f"{filename}.png",metadata={"Description":json.dumps(metadata,sort_keys=True)})
             if histogram:
-                np.savez_compressed(output/f"{filename}_raw_counts.npz",**histogram)
+                if filename.endswith("_smooth"):
+                    counts_file=filename.replace("_smooth","_raw_counts")+".npz"
+                else:
+                    counts_file=f"{filename}.npz" if filename.startswith("eye_") and filename.endswith("_raw_counts") else f"{filename}_raw_counts.npz"
+                    np.savez_compressed(output/counts_file,**histogram)
+                metadata["numerical_histogram_file"]=counts_file
+            renderings[f"{filename}.png"]=metadata
             figure.clear()
+        for index,view in enumerate(views):
+            filename="selected_view" if index==0 else view.lower().replace(" ","_")
+            save_display(replace(record.plot_settings,view=view),filename)
+        # Keep existing waveform/raw exports above, and add explicitly separate
+        # display products at the selected display phase and supersampling.
+        for length in ((1,2) if record.data.waveform is not None else (1,)):
+            view="1UI pattern" if length==1 else "2UI eye"
+            save_display(replace(record.plot_settings,view=view,eye_rendering="Raw Counts"),f"eye_{length}ui_raw_counts")
+            save_display(replace(record.plot_settings,view=view,eye_rendering="Smooth Eye"),f"eye_{length}ui_smooth")
+        (output/"rendering_summary.json").write_text(json.dumps(renderings,indent=2),encoding="utf-8")
+        summary_path=output/"summary.json"
+        summary=json.loads(summary_path.read_text(encoding="utf-8"))
+        summary["eye_rendering"]=renderings
+        summary["eye_height"]=dict(status=eh_status,settings=asdict(eh.settings) if eh else None,rows=list(eh.rows) if eh else [],display_projection=display_projection,EW="unavailable: outside milestone",BER_SER="unavailable: no conversion")
+        (output/"eye_height_analysis.json").write_text(json.dumps(dict(status=eh_status,settings=asdict(eh.settings) if eh else None,rows=list(eh.rows) if eh else [],components=list(eh.components) if eh else [],populations=list(eh.populations) if eh else [],display_projection=display_projection),indent=2,allow_nan=False),encoding="utf-8")
+        summary_path.write_text(json.dumps(summary,indent=2),encoding="utf-8")
     return output

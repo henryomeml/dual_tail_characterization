@@ -27,12 +27,17 @@ def context_parameters(snapshot, previous, current, following):
     return np.asarray(means), np.asarray(sigmas)
 
 
-def generate_history_endpoints(snapshot: ExperimentConfig):
+def generate_history_endpoints(snapshot: ExperimentConfig, pattern_result=None):
     if snapshot.mode != "history_endpoints":
         raise ValueError("history generator requires history_endpoints configuration")
     c = snapshot.config
     symbol_rng, endpoint_rng, _noise_rng = [np.random.default_rng(s) for s in np.random.SeedSequence(c.seed).spawn(3)]
-    if c.symbol_mode == "random":
+    if pattern_result is not None:
+        from dataclasses import replace
+        symbols=pattern_result.symbols.copy()
+        guards=np.array([pattern_result.before[-1],pattern_result.after[0]])
+        c=replace(c,symbol_mode="explicit",sequence=tuple(map(int,symbols)),probabilities=None)
+    elif c.symbol_mode == "random":
         symbols = symbol_rng.choice(len(c.levels), c.n_symbols, p=c.probabilities)
         guards = symbol_rng.choice(len(c.levels), 2, p=c.probabilities)
     else:
@@ -47,5 +52,7 @@ def generate_history_endpoints(snapshot: ExperimentConfig):
         history_model="controlled history dependence; does not reproduce arbitrary independent-lane endpoints exactly",
         context_guards=guards.tolist(), context_guard_policy="independent draws after retained symbols" if c.symbol_mode=="random" else "constant endpoint extension; no wraparound",
         effective_lane_reference="actual observed adjacent context-pair weights; not equal-context averaging")
-    w = assemble_shared_waveform(c,symbols,endpoints,z,metadata)
+    if pattern_result is not None:
+        metadata.update(pattern=pattern_result.metadata,context_guard_policy=pattern_result.metadata["guard_policy"])
+    w = assemble_shared_waveform(c,symbols,endpoints,z,metadata,lane_parameters=snapshot.to_dict().get("lane_overrides"))
     return HistoryResult(w,contexts,means,sigmas,guards)
